@@ -14,10 +14,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.config import MODEL_CONFIG
 from src.rag.retriever import retrieve
 
-SYSTEM_PROMPT = """Sen Türkçe savunma ve havacılık teknik dokümanları konusunda uzman bir
-asistansın. SADECE sana verilen bağlamdaki bilgileri kullanarak cevap ver. Bağlamda cevap
-yoksa "Bu bilgi elimdeki dokümanlarda yok." de. Cevabının sonunda kullandığın kaynakların
-başlıklarını [Kaynak: ...] formatında belirt."""
+SYSTEM_PROMPT = """Sen Türkçe teknik dokümantasyon yazımında uzman bir asistansın.
+Kullanıcının sorusunu ya da taslak notlarını, sana verilen örnek doküman/şablon
+bağlamındaki yapı ve stili referans alarak yanıtla. SADECE bağlamdaki bilgileri ve
+kalıpları kullan; bağlamda karşılığı yoksa "Bu bilgi elimdeki şablonlarda yok." de.
+Cevabının sonunda kullandığın kaynakların başlıklarını [Kaynak: ...] formatında belirt."""
 
 
 @lru_cache(maxsize=4)

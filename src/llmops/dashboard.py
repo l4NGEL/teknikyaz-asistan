@@ -10,8 +10,8 @@ import streamlit as st
 
 from src.llmops.metrics_store import fetch_recent
 
-st.set_page_config(page_title="TİHA-Asistan İzleme Paneli", layout="wide")
-st.title("TİHA-Asistan — LLMOps İzleme Paneli")
+st.set_page_config(page_title="TeknikYaz Asistanı İzleme Paneli", layout="wide")
+st.title("TeknikYaz Asistanı — LLMOps İzleme Paneli")
 
 rows = fetch_recent(limit=500)
 if not rows:

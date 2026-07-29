@@ -44,7 +44,7 @@ class RagConfig:
     chunk_size_tokens: int = 256
     chunk_overlap_tokens: int = 32
     top_k: int = 5
-    collection_name: str = "tiha_asistan"
+    collection_name: str = "teknik_yazim_asistani"
 
 
 @dataclass(frozen=True)
@@ -62,24 +62,15 @@ class QloraConfig:
 
 
 CLASSIFICATION_LABELS = [
-    "İHA/SİHA Sistemleri",
-    "Motor ve Aviyonik",
-    "Radar ve Elektronik Harp",
-    "Yazılım ve Otonomi",
-    "Lojistik ve Üretim",
+    "README",
+    "API Dokümantasyonu",
+    "Kurulum Kılavuzu",
+    "Kullanıcı Kılavuzu",
+    "SSS",
+    "Mimari Doküman",
+    "Sürüm Notları",
     "Diğer",
 ]
-
-DOMAIN_GAZETTEER = {
-    # Kural tabanlı NER zenginleştirmesi için basit bir sözlük (bkz. src/nlp_tasks/ner.py)
-    "PLATFORM": [
-        "Bayraktar TB2", "Bayraktar Akıncı", "Bayraktar Kızılelma", "Bayraktar TB3",
-        "MIUS", "Kızılelma", "Akıncı", "TB2", "TB3",
-    ],
-    "KURUM": [
-        "Baykar", "TUSAŞ", "ASELSAN", "ROKETSAN", "SSB", "TÜBİTAK", "Savunma Sanayii Başkanlığı",
-    ],
-}
 
 MODEL_CONFIG = ModelConfig()
 RAG_CONFIG = RagConfig()
