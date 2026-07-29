@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+data/raw/
+data/processed/
+data/chroma_db/
+data/metrics.sqlite3
+
+models/
+mlruns/
+
+.ipynb_checkpoints/
