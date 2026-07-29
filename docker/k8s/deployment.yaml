@@ -1,0 +1,44 @@
+# Kubernetes'e geçiş için minimal örnek. Bir cluster'a eriştiğinizde:
+#   kubectl apply -f docker/k8s/deployment.yaml -f docker/k8s/service.yaml
+# Görüntüyü önce bir registry'e push etmeniz gerekir (bkz. .github/workflows/ci.yml'deki
+# opsiyonel build-and-push adımı).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tiha-asistan-api
+  labels:
+    app: tiha-asistan-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tiha-asistan-api
+  template:
+    metadata:
+      labels:
+        app: tiha-asistan-api
+    spec:
+      containers:
+        - name: api
+          image: tiha-asistan-api:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 20

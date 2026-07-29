@@ -1,0 +1,43 @@
+# Çekirdek ML
+torch>=2.2
+transformers>=4.42
+accelerate>=0.31
+datasets>=2.19
+sentencepiece
+sentence-transformers>=3.0
+
+# Fine-tuning / alignment
+peft>=0.11
+bitsandbytes>=0.43
+trl>=0.9
+evaluate
+
+# RAG
+chromadb>=0.5
+rank-bm25
+
+# NLP yardımcı görevler
+sumy
+nltk
+
+# LLMOps
+mlflow>=2.14
+streamlit>=1.36
+pandas>=2.2
+
+# Serving
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+
+# Veri toplama
+wikipedia-api>=0.6
+requests
+
+# Test / kalite
+pytest>=8.2
+ruff>=0.5
+
+# XAI
+scikit-learn
+scipy
