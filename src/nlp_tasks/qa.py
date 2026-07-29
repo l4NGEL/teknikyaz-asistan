@@ -33,5 +33,5 @@ def extractive_answer(question: str, context: str) -> dict:
 
 
 if __name__ == "__main__":
-    ctx = "Bayraktar TB2, Baykar tarafından geliştirilen taktik bir insansız hava aracıdır."
-    print(extractive_answer("Bayraktar TB2'yi kim geliştirdi?", ctx))
+    ctx = "kullanici_olustur fonksiyonu, e_posta parametresi zaten kayıtlıysa DuplicateEmailError fırlatır."
+    print(extractive_answer("kullanici_olustur hangi hatayı fırlatır?", ctx))

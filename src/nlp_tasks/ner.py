@@ -1,9 +1,10 @@
-"""Varlık tanıma (NER): hazır Türkçe NER modeli + domain'e özgü gazetteer birleşimi.
+"""Varlık tanıma (NER): hazır Türkçe NER modeli + teknik-dokümantasyona özgü regex desenleri.
 
-Genel amaçlı NER modelleri "Bayraktar TB2" gibi platform isimlerini ya PERSON/ORG
-olarak yanlış etiketler ya da hiç yakalamaz. Bunu düzeltmek için basit ama etkili bir
-teknik kullanıyoruz: model çıktısını, config.py'deki DOMAIN_GAZETTEER ile post-process
-ederek zenginleştiriyoruz (gerçek endüstride "hibrit NER" olarak bilinir).
+Genel amaçlı NER modelleri kişi/kurum/yer varlıklarını yakalar ama teknik dokümantasyonun
+kendine özgü "varlıkları" (fonksiyon adı, CLI bayrağı, sürüm numarası, ortam değişkeni,
+dosya yolu) bunların dışında kalır — çünkü bunlar kapalı bir isim listesi (gazetteer)
+değil, düzenli (regex ile yakalanabilir) kalıplardır. Bu yüzden burada model çıktısını,
+sabit bir kelime listesi yerine desen-tabanlı bir çıkarımla zenginleştiriyoruz (hibrit NER).
 """
 from __future__ import annotations
 
@@ -11,9 +12,19 @@ import re
 
 from transformers import pipeline
 
-from src.config import DOMAIN_GAZETTEER, MODEL_CONFIG
+from src.config import MODEL_CONFIG
 
 _ner_pipe = None
+
+# Teknik dokümantasyonda sık geçen, regex ile güvenilir şekilde yakalanabilen kalıplar.
+TECHNICAL_PATTERNS: dict[str, str] = {
+    "KOD_PARCASI": r"`[^`\n]+`",
+    "CLI_BAYRAGI": r"(?<![\w-])--[a-zA-Z][\w-]*|(?<![\w-])-[a-zA-Z](?![\w-])",
+    "SURUM_NUMARASI": r"\bv?\d+\.\d+(?:\.\d+)?\b",
+    "ORTAM_DEGISKENI": r"\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b",
+    "DOSYA_YOLU": r"(?:[.~]?/[\w./-]+)|(?:[A-Za-z]:\\[\w\\.-]+)",
+    "FONKSIYON_CAGRISI": r"\b[a-z_][a-z0-9_]*\([^)\n]*\)",
+}
 
 
 def _get_pipe():
@@ -27,21 +38,20 @@ def _get_pipe():
     return _ner_pipe
 
 
-def _gazetteer_matches(text: str) -> list[dict]:
+def _pattern_matches(text: str) -> list[dict]:
     matches = []
-    for label, terms in DOMAIN_GAZETTEER.items():
-        for term in sorted(terms, key=len, reverse=True):  # uzun terimler önce (örtüşmeyi azaltır)
-            for m in re.finditer(re.escape(term), text):
-                matches.append(
-                    {
-                        "entity_group": label,
-                        "word": term,
-                        "start": m.start(),
-                        "end": m.end(),
-                        "score": 1.0,
-                        "source": "gazetteer",
-                    }
-                )
+    for label, pattern in TECHNICAL_PATTERNS.items():
+        for m in re.finditer(pattern, text):
+            matches.append(
+                {
+                    "entity_group": label,
+                    "word": m.group(0),
+                    "start": m.start(),
+                    "end": m.end(),
+                    "score": 1.0,
+                    "source": "pattern",
+                }
+            )
     return matches
 
 
@@ -60,13 +70,17 @@ def extract_entities(text: str) -> list[dict]:
     model_entities = [
         {**e, "source": "model", "score": float(e.get("score", 0))} for e in _get_pipe()(text)
     ]
-    gazetteer_entities = _gazetteer_matches(text)
-    # Gazetteer'a öncelik veriyoruz çünkü domain'e özgü ve kesin (regex tam eşleşme).
-    combined = _remove_overlaps(gazetteer_entities + model_entities)
+    pattern_entities = _pattern_matches(text)
+    # Regex desenlerine öncelik veriyoruz çünkü tam eşleşme, domain'e özgü ve kesindir.
+    combined = _remove_overlaps(pattern_entities + model_entities)
     return combined
 
 
 if __name__ == "__main__":
-    sample = "Baykar tarafından geliştirilen Bayraktar TB2, ASELSAN'ın ürettiği elektro-optik sistemlerle donatılmıştır."
+    sample = (
+        "`kullanici_olustur(ad, e_posta)` fonksiyonunu çağırmadan önce ORTAM_DEGISKENI "
+        "olan DATABASE_URL'yi ayarlayın. Sürüm v2.3.0'dan itibaren --force bayrağı "
+        "eklendi, yapılandırma dosyası /etc/proje/config.yaml içinde bulunur."
+    )
     for ent in extract_entities(sample):
         print(ent)

@@ -24,7 +24,7 @@ from src.serving.schemas import (
     TranslateResponse,
 )
 
-app = FastAPI(title="TİHA-Asistan API", version="0.1.0")
+app = FastAPI(title="TeknikYaz Asistanı API", version="0.1.0")
 
 MODEL_VERSION = "base-rag-v1"  # fine-tune/DPO adaptörü devreye girince buradan güncellenir
 

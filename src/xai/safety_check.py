@@ -3,8 +3,10 @@ kontrolünden geçirir.
 
 İki katman:
 1. Model tabanlı: Türkçe bir "offensive/toxic language" sınıflandırıcısı.
-2. Kural tabanlı: domain'e özgü hassas terimler (örn. can kaybı/casualty rakamları gibi
-   yanlış aktarılırsa zarar verebilecek ifadeler) için basit bir anahtar kelime taraması.
+2. Kural tabanlı: bir dokümantasyon yazım asistanına özgü asıl risk — modelin, örnek kod
+   bloklarına gerçek görünümlü kimlik bilgisi (API anahtarı, şifre, token) "uydurması"
+   ya da kullanıcının verdiği notlardaki gerçek bir sırrı olduğu gibi dokümana kopyalaması.
+   Bunu regex tabanlı bir sır/kimlik-bilgisi deseni taramasıyla yakalıyoruz.
 
 Model tabanlı kontrol tek başına yeterli değildir (yanlış negatif/pozitif verebilir);
 kural tabanlı katman, domain'e özgü riskleri modelin kaçırdığı yerlerde yakalamak için
@@ -12,15 +14,21 @@ ikinci bir güvenlik ağı görevi görür — üretim sistemlerinde "defense in
 """
 from __future__ import annotations
 
+import re
+
 from transformers import pipeline
 
 from src.config import MODEL_CONFIG
 
 _offensive_pipe = None
 
-SENSITIVE_KEYWORDS = [
-    "kesin sayıda ölü", "kesin kayıp rakamı", "resmi olmayan istihbarat",
-]
+# Örnek kod/komut bloklarında sızabilecek, gerçek görünümlü kimlik bilgisi kalıpları.
+SECRET_PATTERNS: dict[str, str] = {
+    "OLASI_SIFRE": r"(?i)\bpassword\s*=\s*['\"]?[^\s'\"]{4,}",
+    "OLASI_API_ANAHTARI": r"(?i)\b(api[_-]?key|secret[_-]?key|token)\s*=\s*['\"]?[A-Za-z0-9_\-]{8,}",
+    "AWS_ERISIM_ANAHTARI": r"\bAKIA[0-9A-Z]{16}\b",
+    "OZEL_ANAHTAR_BASLIGI": r"-----BEGIN (RSA |EC )?PRIVATE KEY-----",
+}
 
 
 def _get_pipe():
@@ -36,18 +44,21 @@ def model_based_check(text: str) -> dict:
     return {"is_offensive": is_offensive, "label": result["label"], "score": float(result["score"])}
 
 
-def keyword_based_check(text: str) -> list[str]:
-    text_lower = text.lower()
-    return [kw for kw in SENSITIVE_KEYWORDS if kw in text_lower]
+def secret_leak_check(text: str) -> list[dict]:
+    hits = []
+    for label, pattern in SECRET_PATTERNS.items():
+        for m in re.finditer(pattern, text):
+            hits.append({"pattern": label, "match": m.group(0)})
+    return hits
 
 
 def safety_check(text: str) -> dict:
     model_result = model_based_check(text)
-    keyword_hits = keyword_based_check(text)
+    secret_hits = secret_leak_check(text)
 
-    is_safe = (not model_result["is_offensive"]) and (not keyword_hits)
+    is_safe = (not model_result["is_offensive"]) and (not secret_hits)
     return {
         "is_safe": is_safe,
         "model_check": model_result,
-        "keyword_hits": keyword_hits,
+        "secret_hits": secret_hits,
     }

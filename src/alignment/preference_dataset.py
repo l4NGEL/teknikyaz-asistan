@@ -1,13 +1,14 @@
-"""DPO için tercih (preference) veri seti üretir: chosen vs. rejected cevap çiftleri.
+"""DPO için tercih (preference) veri seti üretir: chosen vs. rejected doküman çiftleri.
 
-Strateji: "chosen" cevaplar, src/data_prep/instruction_dataset.py'de bağlamdan üretilmiş
-(dolayısıyla kaynağa sadık) cevaplardır. "rejected" cevaplar ise AYNI soruyu, modele HİÇ
-bağlam vermeden (retrieval olmadan) sorduğumuzda aldığımız serbest üretimdir — bağlamsız
-üretim, ezber bilgiye dayandığı için genellikle daha az kesin/daha halüsinasyonludur.
+Strateji: "chosen" dokümanlar, src/data_prep/instruction_dataset.py'de zaten hedef
+kalitede üretilmiş (iyi yapılandırılmış, tutarlı) çıktılardır. "rejected" dokümanlar ise
+AYNI taslak notlar verildiğinde, modele hiçbir şablon/stil bağlamı vermeden (retrieval
+olmadan) ürettirdiğimiz serbest üretimdir — bağlamsız üretim genellikle daha dağınık,
+tutarsız yapıda veya notlarda olmayan ayrıntılar "uyduran" bir metin olur.
 
-Bu, insan etiketleme gerektirmeyen, ucuz ama gerçek bir "grounded vs ungrounded" sinyali
-üretir. Üretimde bunun yerine gerçek kullanıcı geri bildirimi veya insan değerlendirmesi
-kullanılır; burada amaç DPO mekaniğini uçtan uca deneyimlemek.
+Bu, insan etiketleme gerektirmeyen, ucuz ama gerçek bir "iyi yapılandırılmış vs. serbest/
+tutarsız" sinyali üretir. Üretimde bunun yerine gerçek kullanıcı geri bildirimi veya insan
+değerlendirmesi kullanılır; burada amaç DPO mekaniğini uçtan uca deneyimlemek.
 """
 from __future__ import annotations
 
@@ -16,10 +17,10 @@ import json
 from src.config import MODEL_CONFIG, PROCESSED_DIR
 
 
-def _generate_ungrounded_answer(question: str, generator) -> str:
+def _generate_ungrounded_answer(prompt_text: str, generator) -> str:
     messages = [
-        {"role": "system", "content": "Kısa ve doğrudan Türkçe cevap ver."},
-        {"role": "user", "content": question},
+        {"role": "system", "content": "Kısa ve doğrudan Türkçe yanıt ver, şablon veya stil kılavuzu kullanma."},
+        {"role": "user", "content": prompt_text},
     ]
     out = generator(messages, do_sample=True, temperature=0.9, max_new_tokens=150)
     generated = out[0]["generated_text"]
@@ -38,16 +39,19 @@ def build_preference_dataset(sft_path=None, max_examples: int | None = None) -> 
             if max_examples and i >= max_examples:
                 break
             ex = json.loads(line)
-            question = ex["instruction"]
+            # SFT örneklerinde `instruction` sabittir (bkz. instruction_dataset.py); asıl
+            # değişen içerik `input`teki (taslak notlar) kısımdır, bu yüzden prompt'u
+            # ikisini birleştirerek kuruyoruz — tıpkı fine-tuning'de kullanılan format gibi.
+            prompt_text = f"{ex['instruction']}\n\n{ex['input']}"
             chosen = ex["output"]
-            rejected = _generate_ungrounded_answer(question, generator)
+            rejected = _generate_ungrounded_answer(prompt_text, generator)
 
             if rejected.strip() == chosen.strip():
                 continue  # ayırt edici sinyal yoksa çifti atla
 
             pairs.append(
                 {
-                    "prompt": question,
+                    "prompt": prompt_text,
                     "chosen": chosen,
                     "rejected": rejected,
                     "source_chunk_id": ex.get("source_chunk_id"),

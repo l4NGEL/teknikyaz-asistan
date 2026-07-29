@@ -21,7 +21,7 @@ def to_chat_format(example: dict) -> dict:
     """(instruction, input, output) -> chat mesajları. TRL'in SFTTrainer'ı bu formatı bekler."""
     user_content = example["instruction"]
     if example.get("input"):
-        user_content = f"{example['input']}\n\nSoru: {example['instruction']}"
+        user_content = f"{example['instruction']}\n\n{example['input']}"
     return {
         "messages": [
             {"role": "user", "content": user_content},

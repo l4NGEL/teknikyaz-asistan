@@ -1,8 +1,9 @@
 """Makine çevirisi: TR<->EN, teknik dokümanların çift dilli erişimi için.
 
-Savunma/havacılık dokümanlarının çoğu İngilizce kaynaklıdır; TR<->EN çeviri katmanı
-hem korpus zenginleştirme (İngilizce kaynakları Türkçeye çevirip veri setine katma)
-hem de kullanıcıya iki dilde yanıt sunma senaryolarında kullanılabilir.
+Yazılım spesifikasyonlarının/API dokümanlarının çoğu İngilizce kaynaklıdır; TR<->EN
+çeviri katmanı hem korpus zenginleştirme (İngilizce spesifikasyonu Türkçeye çevirip
+taslak notlara katma) hem de kullanıcıya iki dilde dokümantasyon sunma senaryolarında
+kullanılabilir.
 """
 from __future__ import annotations
 
@@ -28,4 +29,4 @@ def translate(text: str, direction: str = "tr-en") -> str:
 
 
 if __name__ == "__main__":
-    print(translate("İnsansız hava araçları modern savunma sanayiinin temel bileşenidir.", "tr-en"))
+    print(translate("Bu fonksiyon, kullanıcı e-postası zaten kayıtlıysa bir hata fırlatır.", "tr-en"))

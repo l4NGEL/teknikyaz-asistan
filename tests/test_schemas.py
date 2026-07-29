@@ -10,7 +10,7 @@ def test_chat_request_rejects_empty_message():
 
 
 def test_chat_request_accepts_valid_message():
-    req = ChatRequest(session_id="s1", message="Bayraktar TB2 nedir?")
+    req = ChatRequest(session_id="s1", message="İyi bir API dokümantasyonu nasıl yazılır?")
     assert req.session_id == "s1"
 
 
