@@ -12,7 +12,11 @@ fi
 
 cd "$PROJECT_DIR"
 
-pip install -q -r requirements.txt
+if [ -f scripts/colab_bootstrap.py ]; then
+    python scripts/colab_bootstrap.py
+else
+    pip install -q -r requirements.txt
+fi
 
 python - <<'PY'
 import nltk

@@ -1,10 +1,13 @@
-"""QLoRA (4-bit quantized LoRA) ile instruction fine-tuning.
+#!/usr/bin/env python3
+"""Eski zip icin tek dosyalik qlora_train yamasi (colab_patches gerektirmez)."""
+from __future__ import annotations
 
-Neden QLoRA: Colab'ın ücretsiz T4 GPU'sunda (~15GB VRAM) birkaç milyar parametreli bir
-modeli tam hassasiyetle (full fine-tuning) eğitmek mümkün değildir. QLoRA, temel modeli
-4-bit'e sıkıştırıp (NF4) sadece küçük LoRA adaptör katmanlarını eğiterek bunu mümkün kılar
-— parametrelerin <%1'ini güncelleyerek tam fine-tuning'e yakın performans elde edilir.
-"""
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DST = ROOT / "src/finetune/qlora_train.py"
+
+CONTENT = '''"""QLoRA (4-bit quantized LoRA) ile instruction fine-tuning."""
 from __future__ import annotations
 
 import inspect
@@ -127,4 +130,15 @@ def train(base_model: str | None = None, output_dir: str | None = None) -> str:
 
 if __name__ == "__main__":
     path = train()
-    print(f"LoRA adaptörü kaydedildi -> {path}")
+    print(f"LoRA adaptoru kaydedildi -> {path}")
+'''
+
+
+def main() -> None:
+    DST.parent.mkdir(parents=True, exist_ok=True)
+    DST.write_text(CONTENT, encoding="utf-8")
+    print(f"Guncellendi: {DST.relative_to(ROOT)}")
+
+
+if __name__ == "__main__":
+    main()

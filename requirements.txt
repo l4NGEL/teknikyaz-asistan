@@ -1,15 +1,17 @@
 # Çekirdek ML
 torch>=2.2
 transformers>=4.42
+huggingface-hub<1.0
 accelerate>=0.31
-datasets>=2.19
+datasets>=2.19,<3.0
+pyarrow>=4.0.0,<25
 sentencepiece
 sentence-transformers>=3.0
 
 # Fine-tuning / alignment
 peft>=0.11
 bitsandbytes>=0.43
-trl>=0.9
+trl>=0.19.1,<0.24
 evaluate
 
 # RAG
