@@ -77,6 +77,11 @@ def install_packages() -> None:
         "peft", "bitsandbytes", "accelerate", "mlflow",
         "sumy", "nltk",
     )
+    # transformers.pipelines'in kullanmadigimiz alt-pipeline'lari (orn. document QA)
+    # scipy uzerinden numpy'a bagimli; onceki kurulumlar numpy'i guncelleyip scipy'yi
+    # guncellemeden birakmis olabilir (ABI uyumsuzlugu -> "cannot import name '_center'").
+    # Ikisini birlikte, taze bir cift olarak yeniden kuruyoruz.
+    _pip("--force-reinstall", "--no-cache-dir", "numpy", "scipy")
     # pyarrow/datasets'i hf-hub'dan ONCE pinliyoruz: datasets'in kendi kurulumu da
     # hf-hub'i (ust siniri olmayan kendi gereksinimine gore) yukseltebilir; hf-hub
     # pinini bundan SONRA uygulamazsak bu adim onu tekrar bozar.
