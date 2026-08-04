@@ -54,16 +54,17 @@ def _fix_opentelemetry() -> None:
 
 def install_packages() -> None:
     _fix_opentelemetry()
-    # ONEMLI: transformers + trl + diger ML paketlerini TEK bir pip cagrisinda birlikte
-    # coz duruyoruz (ayri ayri cagrilar degil). Nedeni: pip her ayri "install" cagrisini
-    # bagimsiz coz er, bir onceki cagrinin sectigi surumu bir sonraki sessizce
-    # degistirebilir -- boylece internal olarak birbiriyle uyumsuz bir transformers+trl
-    # ikilisiyle kalinabiliyor (orn. trl'in DPOConfig'inin TrainingArguments'ta olmayan
-    # bir ozelliye basvurmasi gibi bir AttributeError). Tek cagrida pip, TUM kisitlamalari
-    # birlikte gorup gercekten mutual-uyumlu tek bir kombinasyon secmek zorunda kalir.
+    # ONEMLI: transformers/trl'yi ARALIK (>=, <) degil, KESIN surum (==) ile pinliyoruz,
+    # ve ayri bir cagriyla kuruyoruz. Aralikli bir kisitlamayi (orn. "trl>=0.19.1,<0.24")
+    # baska bircok paketle (chromadb, sentence-transformers, peft, accelerate...) AYNI
+    # pip cagrisinda birlikte cozdurmek, pip'in resolver'ini saatlerce surebilecek bir
+    # geri izleme (backtracking) aramasina sokabiliyor. Kesin surumlerde pip arama
+    # yapmaz, dogrudan indirir — hem cok daha hizli hem de mutual-uyumlulugu garanti eder
+    # (trl'in DPOConfig'inin TrainingArguments'ta olmayan bir ozelliye basvurmasi gibi
+    # AttributeError'lari onler).
+    _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.11.4")
+    # transformers/trl ARTIK pinli oldugu icin digerlerini ayri, "-U" olmadan kuruyoruz.
     _pip(
-        "-U",
-        "transformers", "trl>=0.19.1,<0.24",
         "chromadb==0.5.23", "sentence-transformers", "rank-bm25",
         "peft", "bitsandbytes", "accelerate", "mlflow",
         "sumy", "nltk",

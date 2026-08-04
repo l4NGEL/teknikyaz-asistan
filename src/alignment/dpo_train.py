@@ -11,6 +11,7 @@ DPO, adım 4'te QLoRA ile eğitilmiş adaptörün ÜZERİNE devam eder (aynı Lo
 """
 from __future__ import annotations
 
+import inspect
 import json
 
 from datasets import Dataset
@@ -58,11 +59,16 @@ def train(
         report_to=["mlflow"],
     )
 
+    # trl surumleri arasinda DPOTrainer'in tokenizer parametresinin adi degisti
+    # (eski: tokenizer=, yeni: processing_class=) — hangi surum kuruluysa ona uyuyoruz.
+    trainer_params = inspect.signature(DPOTrainer.__init__).parameters
+    tokenizer_kwarg = "processing_class" if "processing_class" in trainer_params else "tokenizer"
+
     trainer = DPOTrainer(
         model=model,
         args=dpo_config,
         train_dataset=dataset,
-        processing_class=tokenizer,
+        **{tokenizer_kwarg: tokenizer},
     )
     trainer.train()
     trainer.save_model(output_dir)
