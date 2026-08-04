@@ -85,16 +85,16 @@ def install_packages() -> None:
             print(f"Uyari: {pkg} kurulamadi, atlaniyor.")
     # ONEMLI: transformers/trl pinini EN SONDA (sentence-transformers, accelerate gibi
     # paketlerden SONRA) uyguluyoruz. Nedeni: bu paketlerin bazilari transformers'a
-    # daha eski bir ust sinir dayatir; ayni pip komutunda once transformers>=5.0
-    # kurulsa bile SONRAKI bagimsiz bir "pip install" cagrisi (yukaridaki optional
-    # dongu) transformers'i sessizce eski bir surume dusurebilir (pip, her ayri
-    # cagriyi kendi icinde bagimsiz coz er, onceki cagrinin niyetini "hatirlamaz").
-    # Bu yuzden "son pinleyen kazanir" stratejisini kullaniyoruz — pyarrow/datatsets
-    # icin zaten ayni sebeple asagida da uyguluyoruz.
-    _pip("transformers>=5.0", "trl>=0.19.1,<0.24")
-    # Colab'da onceden kurulu huggingface-hub, transformers>=5.0'in bile beklemedigi
-    # kadar yeni (1.x) olabilir; eski transformers surumune sessizce dusulduyse bu
-    # satir hf-hub'i o surumun kabul ettigi araliga (<1.0) geri ceker.
+    # daha eski bir ust sinir dayatir; onceki bagimsiz bir "pip install" cagrisi
+    # (yukaridaki optional dongu) transformers'i sessizce eski bir surume indirebilir
+    # (pip, her ayri cagriyi kendi icinde bagimsiz coz er, onceki cagrinin niyetini
+    # "hatirlamaz"). Bu yuzden "son pinleyen kazanir" stratejisini kullaniyoruz —
+    # pyarrow/datasets icin de asagida ayni sebeple uyguluyoruz.
+    _pip("-U", "transformers", "trl>=0.19.1,<0.24")
+    # Asil kritik satir bu: Colab'da onceden kurulu huggingface-hub genelde
+    # transformers'in (hangi surume duserse dussun) kabul ettiginden daha yeni (1.x)
+    # olur — orijinal ImportError'un gercek kaynagi buydu. hf-hub'i transformers'in
+    # kabul ettigi araliga (<1.0) geri cekiyoruz.
     _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
     # trl/mlflow datasets'i 5.x'e yukseltebilir — pin en sonda
     subprocess.run(
