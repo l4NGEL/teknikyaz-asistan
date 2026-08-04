@@ -77,11 +77,6 @@ def install_packages() -> None:
         "peft", "bitsandbytes", "accelerate", "mlflow",
         "sumy", "nltk",
     )
-    # transformers.pipelines'in kullanmadigimiz alt-pipeline'lari (orn. document QA)
-    # scipy uzerinden numpy'a bagimli; onceki kurulumlar numpy'i guncelleyip scipy'yi
-    # guncellemeden birakmis olabilir (ABI uyumsuzlugu -> "cannot import name '_center'").
-    # Ikisini birlikte, taze bir cift olarak yeniden kuruyoruz.
-    _pip("--force-reinstall", "--no-cache-dir", "numpy", "scipy")
     # pyarrow/datasets'i hf-hub'dan ONCE pinliyoruz: datasets'in kendi kurulumu da
     # hf-hub'i (ust siniri olmayan kendi gereksinimine gore) yukseltebilir; hf-hub
     # pinini bundan SONRA uygulamazsak bu adim onu tekrar bozar.
@@ -95,13 +90,16 @@ def install_packages() -> None:
         "pyarrow==17.0.0",
         "datasets==2.21.0",
     )
-    # ASIL KRITIK SATIR, MUTLAKA EN SON: yukaridaki datasets kurulumu bile
-    # huggingface-hub'i kendi (ust siniri olmayan) gereksinimine gore en guncel
-    # surume (1.x) yukseltebiliyor — orijinal ImportError'un gercek kaynagi buydu.
-    # hf-hub'i, hicbir sonraki adim onu tekrar degistiremeyecek sekilde EN SONDA,
-    # transformers'in (hangi surume duserse dussun) kabul ettigi araliga (<1.0)
-    # geri cekiyoruz.
+    # yukaridaki datasets kurulumu bile huggingface-hub'i kendi (ust siniri olmayan)
+    # gereksinimine gore en guncel surume (1.x) yukseltebiliyor — orijinal
+    # ImportError'un gercek kaynagi buydu. hf-hub'i transformers'in (hangi surume
+    # duserse dussun) kabul ettigi araliga (<1.0) geri cekiyoruz.
     _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
+    # MUTLAKA EN SON: numpy+scipy'yi burada, digerlerinden SONRA pinliyoruz. Nedeni
+    # ayni -- pyarrow/datasets/hf-hub kurulumlari bile numpy'i kendi gereksinimlerine
+    # gore tekrar degistirebiliyor (ABI uyumsuzlugu -> "cannot import name '_center'"),
+    # bu yuzden hicbir sonraki adimin bozamayacagi sekilde onlari en sona koyuyoruz.
+    _pip("--force-reinstall", "--no-cache-dir", "numpy", "scipy")
     try:
         import trl
     except ImportError:
