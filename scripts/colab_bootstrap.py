@@ -10,24 +10,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PATCHES = ROOT / "scripts" / "colab_patches"
 
-# Zorunlu pinler (trl/transformers birlikte yuklenmez — qlora_train inspect ile uyum saglar)
-PINNED = [
-    "pyarrow==17.0.0",
-    "datasets==2.21.0",
-    "chromadb==0.5.23",
-]
-
-OPTIONAL = [
-    "peft",
-    "bitsandbytes",
-    "accelerate",
-    "sentence-transformers",
-    "rank-bm25",
-    "sumy",
-    "nltk",
-    "mlflow",
-]
-
 PATCH_MAP = {
     "nlp_tasks/summarization.py": "src/nlp_tasks/summarization.py",
     "nlp_tasks/qa.py": "src/nlp_tasks/qa.py",
@@ -72,29 +54,23 @@ def _fix_opentelemetry() -> None:
 
 def install_packages() -> None:
     _fix_opentelemetry()
-    chromadb_pin = "chromadb==0.5.23"
-    optional = [p for p in OPTIONAL if p != "chromadb"]
-    try:
-        _pip(chromadb_pin)
-    except subprocess.CalledProcessError:
-        _pip("chromadb")
-    for pkg in optional:
-        try:
-            _pip(pkg)
-        except subprocess.CalledProcessError:
-            print(f"Uyari: {pkg} kurulamadi, atlaniyor.")
-    # ONEMLI: transformers/trl pinini EN SONDA (sentence-transformers, accelerate gibi
-    # paketlerden SONRA) uyguluyoruz. Nedeni: bu paketlerin bazilari transformers'a
-    # daha eski bir ust sinir dayatir; onceki bagimsiz bir "pip install" cagrisi
-    # (yukaridaki optional dongu) transformers'i sessizce eski bir surume indirebilir
-    # (pip, her ayri cagriyi kendi icinde bagimsiz coz er, onceki cagrinin niyetini
-    # "hatirlamaz"). Bu yuzden "son pinleyen kazanir" stratejisini kullaniyoruz —
-    # pyarrow/datasets icin de asagida ayni sebeple uyguluyoruz.
-    _pip("-U", "transformers", "trl>=0.19.1,<0.24")
-    # trl/mlflow datasets'i yukseltebilir — pyarrow/datasets pinini hf-hub'dan ONCE
-    # uyguluyoruz cunku datasets'in kendi kurulumu da hf-hub'i (ust siniri olmayan
-    # kendi gereksinimine gore) yukseltebilir; hf-hub pinini bundan SONRA uygulamazsak
-    # bu adim onu tekrar bozar.
+    # ONEMLI: transformers + trl + diger ML paketlerini TEK bir pip cagrisinda birlikte
+    # coz duruyoruz (ayri ayri cagrilar degil). Nedeni: pip her ayri "install" cagrisini
+    # bagimsiz coz er, bir onceki cagrinin sectigi surumu bir sonraki sessizce
+    # degistirebilir -- boylece internal olarak birbiriyle uyumsuz bir transformers+trl
+    # ikilisiyle kalinabiliyor (orn. trl'in DPOConfig'inin TrainingArguments'ta olmayan
+    # bir ozelliye basvurmasi gibi bir AttributeError). Tek cagrida pip, TUM kisitlamalari
+    # birlikte gorup gercekten mutual-uyumlu tek bir kombinasyon secmek zorunda kalir.
+    _pip(
+        "-U",
+        "transformers", "trl>=0.19.1,<0.24",
+        "chromadb==0.5.23", "sentence-transformers", "rank-bm25",
+        "peft", "bitsandbytes", "accelerate", "mlflow",
+        "sumy", "nltk",
+    )
+    # pyarrow/datasets'i hf-hub'dan ONCE pinliyoruz: datasets'in kendi kurulumu da
+    # hf-hub'i (ust siniri olmayan kendi gereksinimine gore) yukseltebilir; hf-hub
+    # pinini bundan SONRA uygulamazsak bu adim onu tekrar bozar.
     subprocess.run(
         [sys.executable, "-m", "pip", "uninstall", "-y", "pyarrow", "datasets"],
         capture_output=True,
