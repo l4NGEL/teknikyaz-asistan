@@ -63,6 +63,14 @@ def install_packages() -> None:
     # (trl'in DPOConfig'inin TrainingArguments'ta olmayan bir ozelliye basvurmasi gibi
     # AttributeError'lari onler).
     _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.11.4")
+    # transformers.pipelines, hic kullanmadigimiz torchvision'i (goruntu isleme icin)
+    # opsiyonel olarak yuklemeye calisiyor; torch'un guncellenmesi torchvision ile ic
+    # surum uyumsuzlugu yaratabiliyor (torch._dynamo.config icinde TypeError).
+    # Kullanmadigimiz icin kaldiriyoruz.
+    subprocess.run(
+        [sys.executable, "-m", "pip", "uninstall", "-y", "torchvision", "torchaudio"],
+        capture_output=True,
+    )
     # transformers/trl ARTIK pinli oldugu icin digerlerini ayri, "-U" olmadan kuruyoruz.
     _pip(
         "chromadb==0.5.23", "sentence-transformers", "rank-bm25",
