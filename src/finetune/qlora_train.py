@@ -7,6 +7,8 @@ modeli tam hassasiyetle (full fine-tuning) eğitmek mümkün değildir. QLoRA, t
 """
 from __future__ import annotations
 
+import inspect
+
 import torch
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
@@ -53,6 +55,28 @@ def build_lora_model(model):
     return peft_model
 
 
+def _seq_length_config_kwargs() -> dict:
+    max_len = QLORA_CONFIG.max_seq_length
+    params = inspect.signature(SFTConfig.__init__).parameters
+    if "max_length" in params:
+        return {"max_length": max_len}
+    if "max_seq_length" in params:
+        return {"max_seq_length": max_len}
+    return {}
+
+
+def _seq_length_trainer_kwargs() -> dict:
+    if _seq_length_config_kwargs():
+        return {}
+    max_len = QLORA_CONFIG.max_seq_length
+    params = inspect.signature(SFTTrainer.__init__).parameters
+    if "max_seq_length" in params:
+        return {"max_seq_length": max_len}
+    if "max_length" in params:
+        return {"max_length": max_len}
+    return {}
+
+
 def train(base_model: str | None = None, output_dir: str | None = None) -> str:
     output_dir = output_dir or QLORA_CONFIG.output_dir
 
@@ -61,27 +85,40 @@ def train(base_model: str | None = None, output_dir: str | None = None) -> str:
 
     train_ds, eval_ds = build_hf_dataset()
 
-    sft_config = SFTConfig(
-        output_dir=output_dir,
-        num_train_epochs=QLORA_CONFIG.num_train_epochs,
-        per_device_train_batch_size=QLORA_CONFIG.per_device_train_batch_size,
-        gradient_accumulation_steps=QLORA_CONFIG.gradient_accumulation_steps,
-        learning_rate=QLORA_CONFIG.learning_rate,
-        max_seq_length=QLORA_CONFIG.max_seq_length,
-        logging_steps=10,
-        eval_strategy="epoch",
-        save_strategy="epoch",
-        bf16=True,
-        report_to=["mlflow"],  # bkz. src/llmops/experiment_tracker.py
-    )
+    sft_kwargs = {
+        "output_dir": output_dir,
+        "num_train_epochs": QLORA_CONFIG.num_train_epochs,
+        "per_device_train_batch_size": QLORA_CONFIG.per_device_train_batch_size,
+        "gradient_accumulation_steps": QLORA_CONFIG.gradient_accumulation_steps,
+        "learning_rate": QLORA_CONFIG.learning_rate,
+        "logging_steps": 10,
+        "eval_strategy": "epoch",
+        "save_strategy": "epoch",
+        "bf16": True,
+        "report_to": ["mlflow"],
+    }
+    sft_kwargs.update(_seq_length_config_kwargs())
 
-    trainer = SFTTrainer(
-        model=peft_model,
-        args=sft_config,
-        train_dataset=train_ds,
-        eval_dataset=eval_ds,
-        processing_class=tokenizer,
-    )
+    config_params = inspect.signature(SFTConfig.__init__).parameters
+    if "assistant_only_loss" in config_params:
+        sft_kwargs["assistant_only_loss"] = True
+
+    sft_config = SFTConfig(**sft_kwargs)
+
+    trainer_params = inspect.signature(SFTTrainer.__init__).parameters
+    trainer_kwargs = {
+        "model": peft_model,
+        "args": sft_config,
+        "train_dataset": train_ds,
+        "eval_dataset": eval_ds,
+    }
+    trainer_kwargs.update(_seq_length_trainer_kwargs())
+    if "processing_class" in trainer_params:
+        trainer_kwargs["processing_class"] = tokenizer
+    else:
+        trainer_kwargs["tokenizer"] = tokenizer
+
+    trainer = SFTTrainer(**trainer_kwargs)
     trainer.train()
     trainer.save_model(output_dir)
     tokenizer.save_pretrained(output_dir)

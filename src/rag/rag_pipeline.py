@@ -45,19 +45,25 @@ def generate(messages: list[dict], model_path: str | None = None, max_new_tokens
     model_path = model_path or MODEL_CONFIG.base_llm
     tokenizer, model = _load_model(model_path)
 
-    input_ids = tokenizer.apply_chat_template(
-        messages, add_generation_prompt=True, return_tensors="pt"
-    ).to(model.device)
+    encoded = tokenizer.apply_chat_template(
+        messages,
+        add_generation_prompt=True,
+        return_tensors="pt",
+    )
+    if hasattr(encoded, "input_ids"):
+        inputs = {k: v.to(model.device) for k, v in encoded.items()}
+    else:
+        inputs = {"input_ids": encoded.to(model.device)}
+    input_length = inputs["input_ids"].shape[-1]
 
     with torch.no_grad():
         output_ids = model.generate(
-            input_ids,
+            **inputs,
             max_new_tokens=max_new_tokens,
             do_sample=False,
-            temperature=1.0,
             pad_token_id=tokenizer.eos_token_id,
         )
-    generated = output_ids[0][input_ids.shape[-1]:]
+    generated = output_ids[0][input_length:]
     return tokenizer.decode(generated, skip_special_tokens=True).strip()
 
 

@@ -7,25 +7,34 @@ kullanılabilir.
 """
 from __future__ import annotations
 
-from transformers import pipeline
+import torch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from src.config import MODEL_CONFIG
 
-_pipes: dict[str, object] = {}
+_models: dict[str, AutoModelForSeq2SeqLM] = {}
+_tokenizers: dict[str, AutoTokenizer] = {}
 
 
-def _get_pipe(direction: str):
-    if direction not in _pipes:
+def _get_translation_model(direction: str):
+    if direction not in _models:
         model_name = MODEL_CONFIG.mt_tr_en_model if direction == "tr-en" else MODEL_CONFIG.mt_en_tr_model
-        _pipes[direction] = pipeline("translation", model=model_name)
-    return _pipes[direction]
+        _tokenizers[direction] = AutoTokenizer.from_pretrained(model_name)
+        _models[direction] = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        _models[direction].to(device)
+    return _models[direction], _tokenizers[direction]
 
 
 def translate(text: str, direction: str = "tr-en") -> str:
     if direction not in ("tr-en", "en-tr"):
         raise ValueError("direction 'tr-en' ya da 'en-tr' olmalı")
-    pipe = _get_pipe(direction)
-    return pipe(text)[0]["translation_text"]
+    model, tokenizer = _get_translation_model(direction)
+    device = next(model.parameters()).device
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    generated = model.generate(**inputs, max_length=512)
+    return tokenizer.decode(generated[0], skip_special_tokens=True)
 
 
 if __name__ == "__main__":

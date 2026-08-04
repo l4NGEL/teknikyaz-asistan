@@ -7,24 +7,47 @@ sisteminde ikisini karşılaştırmak, XAI/güvenilirlik tartışmasına doğal 
 """
 from __future__ import annotations
 
-from transformers import pipeline
+import torch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from src.config import MODEL_CONFIG
 
-_abstractive_pipe = None
+_abstractive_model = None
+_abstractive_tokenizer = None
 
 
-def _get_abstractive_pipe():
-    global _abstractive_pipe
-    if _abstractive_pipe is None:
-        _abstractive_pipe = pipeline("summarization", model=MODEL_CONFIG.summarization_model)
-    return _abstractive_pipe
+def _get_abstractive_model():
+    global _abstractive_model, _abstractive_tokenizer
+    if _abstractive_model is None:
+        model_name = MODEL_CONFIG.summarization_model
+        _abstractive_tokenizer = AutoTokenizer.from_pretrained(model_name)
+        _abstractive_model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        _abstractive_model.to(device)
+    return _abstractive_model, _abstractive_tokenizer
 
 
 def abstractive_summarize(text: str, max_length: int = 128, min_length: int = 32) -> str:
-    pipe = _get_abstractive_pipe()
-    out = pipe(text, max_length=max_length, min_length=min_length, do_sample=False)
-    return out[0]["summary_text"]
+    model, tokenizer = _get_abstractive_model()
+    device = next(model.parameters()).device
+    inputs = tokenizer(
+        text,
+        max_length=784,
+        padding=True,
+        truncation=True,
+        return_tensors="pt",
+    )
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    generated_ids = model.generate(
+        **inputs,
+        num_beams=2,
+        max_length=max_length,
+        min_length=min_length,
+        repetition_penalty=2.5,
+        length_penalty=2.0,
+        early_stopping=True,
+    )
+    return tokenizer.decode(generated_ids[0], skip_special_tokens=True)
 
 
 def extractive_summarize(text: str, sentence_count: int = 3, language: str = "turkish") -> str:
