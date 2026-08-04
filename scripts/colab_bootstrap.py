@@ -91,12 +91,10 @@ def install_packages() -> None:
     # "hatirlamaz"). Bu yuzden "son pinleyen kazanir" stratejisini kullaniyoruz —
     # pyarrow/datasets icin de asagida ayni sebeple uyguluyoruz.
     _pip("-U", "transformers", "trl>=0.19.1,<0.24")
-    # Asil kritik satir bu: Colab'da onceden kurulu huggingface-hub genelde
-    # transformers'in (hangi surume duserse dussun) kabul ettiginden daha yeni (1.x)
-    # olur — orijinal ImportError'un gercek kaynagi buydu. hf-hub'i transformers'in
-    # kabul ettigi araliga (<1.0) geri cekiyoruz.
-    _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
-    # trl/mlflow datasets'i 5.x'e yukseltebilir — pin en sonda
+    # trl/mlflow datasets'i yukseltebilir — pyarrow/datasets pinini hf-hub'dan ONCE
+    # uyguluyoruz cunku datasets'in kendi kurulumu da hf-hub'i (ust siniri olmayan
+    # kendi gereksinimine gore) yukseltebilir; hf-hub pinini bundan SONRA uygulamazsak
+    # bu adim onu tekrar bozar.
     subprocess.run(
         [sys.executable, "-m", "pip", "uninstall", "-y", "pyarrow", "datasets"],
         capture_output=True,
@@ -107,13 +105,20 @@ def install_packages() -> None:
         "pyarrow==17.0.0",
         "datasets==2.21.0",
     )
+    # ASIL KRITIK SATIR, MUTLAKA EN SON: yukaridaki datasets kurulumu bile
+    # huggingface-hub'i kendi (ust siniri olmayan) gereksinimine gore en guncel
+    # surume (1.x) yukseltebiliyor — orijinal ImportError'un gercek kaynagi buydu.
+    # hf-hub'i, hicbir sonraki adim onu tekrar degistiremeyecek sekilde EN SONDA,
+    # transformers'in (hangi surume duserse dussun) kabul ettigi araliga (<1.0)
+    # geri cekiyoruz.
+    _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
     try:
         import trl
     except ImportError:
         _pip("trl", "peft")
         import trl
     print(f"trl: {trl.__version__} (qlora_train otomatik uyum saglar)")
-    print("pyarrow/datasets pinlendi. Colab'da import oncesi runtime restart onerilir.")
+    print("pyarrow/datasets/huggingface-hub pinlendi. Import oncesi runtime restart onerilir.")
 
 
 def apply_patches() -> None:
