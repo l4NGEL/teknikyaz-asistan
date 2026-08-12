@@ -54,18 +54,6 @@ def _fix_opentelemetry() -> None:
 
 def install_packages() -> None:
     _fix_opentelemetry()
-    # ONEMLI: transformers/trl'yi ARALIK (>=, <) degil, KESIN surum (==) ile pinliyoruz,
-    # ve ayri bir cagriyla kuruyoruz. Aralikli bir kisitlamayi (orn. "trl>=0.19.1,<0.24")
-    # baska bircok paketle (chromadb, sentence-transformers, peft, accelerate...) AYNI
-    # pip cagrisinda birlikte cozdurmek, pip'in resolver'ini saatlerce surebilecek bir
-    # geri izleme (backtracking) aramasina sokabiliyor. Kesin surumlerde pip arama
-    # yapmaz, dogrudan indirir — hem cok daha hizli hem de mutual-uyumlulugu garanti eder
-    # (trl'in DPOConfig'inin TrainingArguments'ta olmayan bir ozelliye basvurmasi gibi
-    # AttributeError'lari onler).
-    # trl==0.11.4, transformers 4.46'nin Trainer.get_batch_samples(epoch_iterator, num_batches)
-    # imzasiyla UYUMSUZ (DPOTrainer eski imzayi bekliyor, "generator has no attribute
-    # generate" hatasi veriyor) -- trl==0.12.2 bu uyumu saglayan ilk surum.
-    _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.12.2")
     # transformers.pipelines, hic kullanmadigimiz torchvision'i (goruntu isleme icin)
     # opsiyonel olarak yuklemeye calisiyor; torch'un guncellenmesi torchvision ile ic
     # surum uyumsuzlugu yaratabiliyor (torch._dynamo.config icinde TypeError).
@@ -74,15 +62,19 @@ def install_packages() -> None:
         [sys.executable, "-m", "pip", "uninstall", "-y", "torchvision", "torchaudio"],
         capture_output=True,
     )
-    # transformers/trl ARTIK pinli oldugu icin digerlerini ayri, "-U" olmadan kuruyoruz.
+    # ONEMLI: transformers/trl HARIC digerlerini ONCE, sinirlama olmadan kuruyoruz.
+    # sentence-transformers/chromadb gibi paketlerin kendi transformers gereksinimleri
+    # olabilir; onlarin transformers'i istedigi surume cekmesine izin veriyoruz, cunku
+    # transformers/trl pinini asagida, digerlerinden SONRA, hicbir seyin
+    # degistiremeyecegi sekilde zorlayacagiz ("son pinleyen kazanir" stratejisi).
     _pip(
         "chromadb==0.5.23", "sentence-transformers", "rank-bm25",
         "peft", "bitsandbytes", "accelerate", "mlflow",
         "sumy", "nltk",
     )
-    # pyarrow/datasets'i hf-hub'dan ONCE pinliyoruz: datasets'in kendi kurulumu da
-    # hf-hub'i (ust siniri olmayan kendi gereksinimine gore) yukseltebilir; hf-hub
-    # pinini bundan SONRA uygulamazsak bu adim onu tekrar bozar.
+    # pyarrow/datasets'i erken pinliyoruz (transformers/trl'den ONCE, cunku onlarin
+    # kendi kurulumu pyarrow/datasets'i etkilemez, ama SONRAsinda tekrar pinlemek
+    # gerekmez).
     subprocess.run(
         [sys.executable, "-m", "pip", "uninstall", "-y", "pyarrow", "datasets"],
         capture_output=True,
@@ -93,13 +85,22 @@ def install_packages() -> None:
         "pyarrow==17.0.0",
         "datasets==2.21.0",
     )
-    # yukaridaki datasets kurulumu bile huggingface-hub'i kendi (ust siniri olmayan)
-    # gereksinimine gore en guncel surume (1.x) yukseltebiliyor — orijinal
-    # ImportError'un gercek kaynagi buydu. hf-hub'i transformers'in (hangi surume
-    # duserse dussun) kabul ettigi araliga (<1.0) geri cekiyoruz.
+    # transformers/trl pinini KESIN surumle, digerlerinden SONRA zorluyoruz -- boylece
+    # yukaridaki hicbir paket (sentence-transformers vb.) bunu tekrar degistiremez.
+    # trl==0.11.4, transformers 4.46'nin Trainer.get_batch_samples(epoch_iterator,
+    # num_batches) imzasiyla UYUMSUZDU (DPOTrainer eski imzayi bekliyor, "generator
+    # has no attribute generate" hatasi veriyordu) -- trl==0.12.2 bu uyumu saglayan
+    # ilk surum. Aralik degil KESIN surum kullaniyoruz cunku pip'in cok sayida paketi
+    # ayni anda aralikla cozmeye calismasi saatler surebilecek bir backtracking
+    # aramasina yol acabiliyor.
+    _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.12.2")
+    # transformers'in kendi force-reinstall'i huggingface-hub'i kendi (ust siniri
+    # olmayan) gereksinimine gore en guncel surume (1.x) yukseltebiliyor — orijinal
+    # ImportError'un gercek kaynagi buydu. hf-hub'i transformers'in kabul ettigi
+    # araliga (<1.0), transformers pininden SONRA geri cekiyoruz.
     _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
     # MUTLAKA EN SON: numpy+scipy'yi burada, digerlerinden SONRA pinliyoruz. Nedeni
-    # ayni -- pyarrow/datasets/hf-hub kurulumlari bile numpy'i kendi gereksinimlerine
+    # ayni -- yukaridaki adimlarin herhangi biri numpy'i kendi gereksinimlerine
     # gore tekrar degistirebiliyor (ABI uyumsuzlugu -> "cannot import name '_center'"),
     # bu yuzden hicbir sonraki adimin bozamayacagi sekilde onlari en sona koyuyoruz.
     _pip("--force-reinstall", "--no-cache-dir", "numpy", "scipy")
