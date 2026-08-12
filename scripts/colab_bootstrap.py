@@ -62,7 +62,10 @@ def install_packages() -> None:
     # yapmaz, dogrudan indirir — hem cok daha hizli hem de mutual-uyumlulugu garanti eder
     # (trl'in DPOConfig'inin TrainingArguments'ta olmayan bir ozelliye basvurmasi gibi
     # AttributeError'lari onler).
-    _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.11.4")
+    # trl==0.11.4, transformers 4.46'nin Trainer.get_batch_samples(epoch_iterator, num_batches)
+    # imzasiyla UYUMSUZ (DPOTrainer eski imzayi bekliyor, "generator has no attribute
+    # generate" hatasi veriyor) -- trl==0.12.2 bu uyumu saglayan ilk surum.
+    _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.12.2")
     # transformers.pipelines, hic kullanmadigimiz torchvision'i (goruntu isleme icin)
     # opsiyonel olarak yuklemeye calisiyor; torch'un guncellenmesi torchvision ile ic
     # surum uyumsuzlugu yaratabiliyor (torch._dynamo.config icinde TypeError).
