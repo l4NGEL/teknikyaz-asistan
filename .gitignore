@@ -11,5 +11,6 @@ data/metrics.sqlite3
 
 models/
 mlruns/
+.local_cache/
 
 .ipynb_checkpoints/
