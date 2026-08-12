@@ -78,12 +78,7 @@ def install_packages() -> None:
     # kullaniyoruz cunku pip'in cok sayida paketi ayni anda aralikla cozmeye calismasi
     # saatler surebilecek bir backtracking aramasina yol acabiliyor.
     _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.12.2")
-    # 2) huggingface-hub: transformers/trl kurulumu bunu kendi (ust siniri olmayan)
-    # gereksinimine gore en guncel surume (1.x) yukseltebiliyor — orijinal
-    # ImportError'un gercek kaynagi buydu. hf-hub'i transformers'in kabul ettigi
-    # araliga (<1.0), transformers pininden SONRA geri cekiyoruz.
-    _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
-    # 3) pyarrow/datasets: trl'in KENDI datasets bagimliligi bunlari bozabiliyor,
+    # 2) pyarrow/datasets: trl'in KENDI datasets bagimliligi bunlari bozabiliyor,
     # bu yuzden transformers/trl'den SONRA tekrar pinliyoruz.
     subprocess.run(
         [sys.executable, "-m", "pip", "uninstall", "-y", "pyarrow", "datasets"],
@@ -95,11 +90,15 @@ def install_packages() -> None:
         "pyarrow==17.0.0",
         "datasets==2.21.0",
     )
-    # 4) MUTLAKA EN SON: numpy+scipy. Yukaridaki adimlarin herhangi biri numpy'i kendi
+    # 3) numpy+scipy. Yukaridaki adimlarin herhangi biri numpy'i kendi
     # gereksinimlerine gore tekrar degistirebiliyor (ABI uyumsuzlugu -> "cannot import
-    # name '_center'"), bu yuzden hicbir sonraki adimin bozamayacagi sekilde en sona
-    # koyuyoruz.
+    # name '_center'").
     _pip("--force-reinstall", "--no-cache-dir", "numpy", "scipy")
+    # 4) MUTLAKA GERCEKTEN EN SON: huggingface-hub. datasets'in KENDI hf-hub
+    # bagimliligi (ust siniri olmayan) bu pini defalarca bozdu — orijinal
+    # ImportError'un gercek kaynagi buydu. Artik hicbir sonraki adim yok, bu yuzden
+    # burada kalici olmasi lazim.
+    _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
     try:
         import trl
     except ImportError:
