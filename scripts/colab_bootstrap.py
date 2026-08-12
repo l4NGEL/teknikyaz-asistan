@@ -62,12 +62,18 @@ def install_packages() -> None:
         [sys.executable, "-m", "pip", "uninstall", "-y", "torchvision", "torchaudio"],
         capture_output=True,
     )
-    # ONEMLI: fragile pin zincirindeki paketleri (transformers/trl/pyarrow/datasets/
+    # chromadb'yi ayri, ZORLA temiz kuruyoruz -- plain "pip install chromadb==X"
+    # ortamda kalmis eski surum dosyalariyla karisip "KeyError: '_type'" gibi ic
+    # tutarsizliklara yol acabiliyor (get_or_create_collection, BOMBOS bir dizinde
+    # bile patlayabiliyor).
+    subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "chromadb"], capture_output=True)
+    _pip("--force-reinstall", "--no-cache-dir", "chromadb==0.5.23")
+    # ONEMLI: fragile pin zincirindeki digerlerini (transformers/trl/pyarrow/datasets/
     # numpy/scipy) EN SONA, birbirini bozamayacaklari kesin bir sirada koyuyoruz.
-    # sentence-transformers/chromadb gibi paketlerin kendi transformers gereksinimleri
-    # olabilir; onlarin transformers'i istedigi surume cekmesine izin veriyoruz.
+    # sentence-transformers gibi paketlerin kendi transformers gereksinimleri olabilir;
+    # onlarin transformers'i istedigi surume cekmesine izin veriyoruz.
     _pip(
-        "chromadb==0.5.23", "sentence-transformers", "rank-bm25",
+        "sentence-transformers", "rank-bm25",
         "peft", "bitsandbytes", "accelerate", "mlflow",
         "sumy", "nltk",
     )
