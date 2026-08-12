@@ -10,9 +10,16 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
-VECTOR_DB_DIR = DATA_DIR / "chroma_db"
 MODELS_DIR = ROOT_DIR / "models"
 METRICS_DB_PATH = DATA_DIR / "metrics.sqlite3"
+
+# ONEMLI: chroma_db BILEREK DATA_DIR disinda (Drive'a symlink'lenmeyen, yerel/gecici
+# Colab diskinde) tutuluyor. Google Drive'in FUSE dosya sistemi SQLite'in ihtiyac
+# duydugu dosya kilitlerini desteklemiyor -> "OperationalError: attempt to write a
+# readonly database" hatasi. Chunk'lar (data/processed/chunks.jsonl) zaten Drive'da
+# kalici oldugu icin her runtime'da chroma_db'yi yeniden indekslemek ucuz/hizli;
+# bu yuzden Drive'a tasimaya gerek yok, sadece yerel diskte kalmasi yeterli.
+VECTOR_DB_DIR = ROOT_DIR / ".local_cache" / "chroma_db"
 
 for _dir in (RAW_DIR, PROCESSED_DIR, VECTOR_DB_DIR, MODELS_DIR):
     _dir.mkdir(parents=True, exist_ok=True)
