@@ -62,19 +62,29 @@ def install_packages() -> None:
         [sys.executable, "-m", "pip", "uninstall", "-y", "torchvision", "torchaudio"],
         capture_output=True,
     )
-    # ONEMLI: transformers/trl HARIC digerlerini ONCE, sinirlama olmadan kuruyoruz.
+    # ONEMLI: fragile pin zincirindeki paketleri (transformers/trl/pyarrow/datasets/
+    # numpy/scipy) EN SONA, birbirini bozamayacaklari kesin bir sirada koyuyoruz.
     # sentence-transformers/chromadb gibi paketlerin kendi transformers gereksinimleri
-    # olabilir; onlarin transformers'i istedigi surume cekmesine izin veriyoruz, cunku
-    # transformers/trl pinini asagida, digerlerinden SONRA, hicbir seyin
-    # degistiremeyecegi sekilde zorlayacagiz ("son pinleyen kazanir" stratejisi).
+    # olabilir; onlarin transformers'i istedigi surume cekmesine izin veriyoruz.
     _pip(
         "chromadb==0.5.23", "sentence-transformers", "rank-bm25",
         "peft", "bitsandbytes", "accelerate", "mlflow",
         "sumy", "nltk",
     )
-    # pyarrow/datasets'i erken pinliyoruz (transformers/trl'den ONCE, cunku onlarin
-    # kendi kurulumu pyarrow/datasets'i etkilemez, ama SONRAsinda tekrar pinlemek
-    # gerekmez).
+    # 1) transformers/trl KESIN surumle. trl==0.11.4, transformers 4.46'nin
+    # Trainer.get_batch_samples(epoch_iterator, num_batches) imzasiyla UYUMSUZDU
+    # (DPOTrainer eski imzayi bekliyor, "generator has no attribute generate" hatasi
+    # veriyordu) -- trl==0.12.2 bu uyumu saglayan ilk surum. Aralik degil KESIN surum
+    # kullaniyoruz cunku pip'in cok sayida paketi ayni anda aralikla cozmeye calismasi
+    # saatler surebilecek bir backtracking aramasina yol acabiliyor.
+    _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.12.2")
+    # 2) huggingface-hub: transformers/trl kurulumu bunu kendi (ust siniri olmayan)
+    # gereksinimine gore en guncel surume (1.x) yukseltebiliyor — orijinal
+    # ImportError'un gercek kaynagi buydu. hf-hub'i transformers'in kabul ettigi
+    # araliga (<1.0), transformers pininden SONRA geri cekiyoruz.
+    _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
+    # 3) pyarrow/datasets: trl'in KENDI datasets bagimliligi bunlari bozabiliyor,
+    # bu yuzden transformers/trl'den SONRA tekrar pinliyoruz.
     subprocess.run(
         [sys.executable, "-m", "pip", "uninstall", "-y", "pyarrow", "datasets"],
         capture_output=True,
@@ -85,24 +95,10 @@ def install_packages() -> None:
         "pyarrow==17.0.0",
         "datasets==2.21.0",
     )
-    # transformers/trl pinini KESIN surumle, digerlerinden SONRA zorluyoruz -- boylece
-    # yukaridaki hicbir paket (sentence-transformers vb.) bunu tekrar degistiremez.
-    # trl==0.11.4, transformers 4.46'nin Trainer.get_batch_samples(epoch_iterator,
-    # num_batches) imzasiyla UYUMSUZDU (DPOTrainer eski imzayi bekliyor, "generator
-    # has no attribute generate" hatasi veriyordu) -- trl==0.12.2 bu uyumu saglayan
-    # ilk surum. Aralik degil KESIN surum kullaniyoruz cunku pip'in cok sayida paketi
-    # ayni anda aralikla cozmeye calismasi saatler surebilecek bir backtracking
-    # aramasina yol acabiliyor.
-    _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.12.2")
-    # transformers'in kendi force-reinstall'i huggingface-hub'i kendi (ust siniri
-    # olmayan) gereksinimine gore en guncel surume (1.x) yukseltebiliyor — orijinal
-    # ImportError'un gercek kaynagi buydu. hf-hub'i transformers'in kabul ettigi
-    # araliga (<1.0), transformers pininden SONRA geri cekiyoruz.
-    _pip("--force-reinstall", "--no-cache-dir", "huggingface-hub<1.0")
-    # MUTLAKA EN SON: numpy+scipy'yi burada, digerlerinden SONRA pinliyoruz. Nedeni
-    # ayni -- yukaridaki adimlarin herhangi biri numpy'i kendi gereksinimlerine
-    # gore tekrar degistirebiliyor (ABI uyumsuzlugu -> "cannot import name '_center'"),
-    # bu yuzden hicbir sonraki adimin bozamayacagi sekilde onlari en sona koyuyoruz.
+    # 4) MUTLAKA EN SON: numpy+scipy. Yukaridaki adimlarin herhangi biri numpy'i kendi
+    # gereksinimlerine gore tekrar degistirebiliyor (ABI uyumsuzlugu -> "cannot import
+    # name '_center'"), bu yuzden hicbir sonraki adimin bozamayacagi sekilde en sona
+    # koyuyoruz.
     _pip("--force-reinstall", "--no-cache-dir", "numpy", "scipy")
     try:
         import trl
