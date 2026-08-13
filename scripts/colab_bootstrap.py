@@ -75,6 +75,18 @@ def install_packages() -> None:
         [sys.executable, "-m", "pip", "uninstall", "-y", "torchvision", "torchaudio"],
         capture_output=True,
     )
+    # Colab'da ONCEDEN KURULU gelen torchao (0.10.0), peft'in LoRA adapter yukleme
+    # yolundaki dispatch_torchao() kontrolunu tetikliyor: is_torchao_available(),
+    # paket kurulu AMA minimum surumden (0.16.0) eskiyse sessizce False donmek yerine
+    # ImportError FIRLATIYOR -- "load_adapter() -> inject_adapter_in_model() ->
+    # dispatch_torchao()" zincirinde LoRA adaptoru hic ilgisi olmasa bile patliyor.
+    # Biz torchao hic kullanmiyoruz (bitsandbytes NF4 ile quantize ediyoruz); paket
+    # tamamen kurulu olmayinca is_torchao_available() sessizce False doner ve peft
+    # dogru dispatcher'a (bnb) geçer.
+    subprocess.run(
+        [sys.executable, "-m", "pip", "uninstall", "-y", "torchao"],
+        capture_output=True,
+    )
     # chromadb'yi ayri, ZORLA temiz kuruyoruz -- plain "pip install chromadb==X"
     # ortamda kalmis eski surum dosyalariyla karisip "KeyError: '_type'" gibi ic
     # tutarsizliklara yol acabiliyor (get_or_create_collection, BOMBOS bir dizinde
