@@ -6,10 +6,12 @@ o kullanılır; verilmezse config'teki temel model. Bu sayede aynı pipeline, pr
 """
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 from src.config import MODEL_CONFIG
 from src.rag.retriever import retrieve
@@ -23,10 +25,30 @@ Cevabının sonunda kullandığın kaynakların başlıklarını [Kaynak: ...] f
 
 @lru_cache(maxsize=4)
 def _load_model(model_path: str):
+    # model_path bir LoRA adaptor klasoru (adapter_config.json icerir) ya da dogrudan bir
+    # temel model kimligi olabilir (orn. 07. notebook'un A/B testinde MODEL_CONFIG.base_llm).
+    # Adaptor ise temel modeli QLoRA egitimindeki AYNI 4-bit (NF4) quantizasyonla yukleyip
+    # adaptoru PeftModel ile ustune bindiriyoruz. transformers'in kendi "adapter_config.json
+    # algila, otomatik yukle" mekanizmasini KULLANMIYORUZ cunku o quantize etmeden (tam
+    # bf16, ~6GB) yukluyor; T4/8GB gibi kisitli GPU'larda device_map="auto" bazi katmanlari
+    # CPU'ya offload ediyor, offload edilmis katmanlara LoRA agirliklari sessizce
+    # uygulanamiyor ("no-op" uyarisi) ve sonunda "You can't move a model that has some
+    # modules offloaded to cpu or disk" RuntimeError'iyla cokuyor.
+    is_adapter = os.path.exists(os.path.join(model_path, "adapter_config.json"))
+    base_model = MODEL_CONFIG.base_llm if is_adapter else model_path
+
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path, device_map="auto", torch_dtype=torch.bfloat16
+    bnb = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=True,
     )
+    model = AutoModelForCausalLM.from_pretrained(
+        base_model, quantization_config=bnb, device_map="auto"
+    )
+    if is_adapter:
+        model = PeftModel.from_pretrained(model, model_path)
     return tokenizer, model
 
 
