@@ -54,6 +54,19 @@ def _fix_opentelemetry() -> None:
 
 def install_packages() -> None:
     _fix_opentelemetry()
+    # Colab, tensorflow'u ONCEDEN KURULU getirir. REPO_SETUP'taki USE_TF=0 ortam
+    # degiskeni transformers'in COGU kod yolunu TF'siz calistirmaya zorlar, ama
+    # transformers/integrations/integration_utils.py gibi bazi modiller (mlflow
+    # callback'i buradan gelir) modul seviyesinde KOSULSUZ "from .. import
+    # TFPreTrainedModel" yapiyor -- USE_TF'yi hic kontrol etmeden. tensorflow paketi
+    # gercekten kurulu olmadigi surece transformers'in kendi "dummy object" mekanizmasi
+    # bunu sorunsuz karsiliyor; ama Colab'da tensorflow GERCEKTEN kurulu oldugu icin bu
+    # yol calisiyor ve "ImportError: cannot import name 'TFPreTrainedModel'" ile
+    # patliyor. USE_TF=0 yetmiyor, tensorflow'u tamamen kaldirmak gerekiyor.
+    subprocess.run(
+        [sys.executable, "-m", "pip", "uninstall", "-y", "tensorflow", "tensorflow-cpu", "tf-keras", "tensorboard"],
+        capture_output=True,
+    )
     # transformers.pipelines, hic kullanmadigimiz torchvision'i (goruntu isleme icin)
     # opsiyonel olarak yuklemeye calisiyor; torch'un guncellenmesi torchvision ile ic
     # surum uyumsuzlugu yaratabiliyor (torch._dynamo.config icinde TypeError).
