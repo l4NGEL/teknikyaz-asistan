@@ -17,13 +17,15 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # GPU/LLM ağırlıklarını indirmeden CI'de çalışabilen alt kümeyi kuruyoruz;
-          # tam kurulum (transformers/torch dahil) `requirements.txt` iledir.
-          pip install ruff pytest pydantic fastapi torch --index-url https://download.pytorch.org/whl/cpu
+          # CPU torch önce: --index-url PyPI'yi kapatır, o yüzden ruff/pytest
+          # ile aynı satırda kullanılmamalı. Sonraki satır zaten kurulu torch'u
+          # yükseltmez (only-if-needed).
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
 
       - name: Lint (ruff)
