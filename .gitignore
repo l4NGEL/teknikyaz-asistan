@@ -15,3 +15,4 @@ mlruns/
 .local_cache/
 
 .ipynb_checkpoints/
+.claude/
