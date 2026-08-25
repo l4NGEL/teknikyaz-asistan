@@ -54,7 +54,7 @@ def _load_model(model_path: str):
 
 def build_prompt(question: str, contexts: list[dict]) -> list[dict]:
     context_block = "\n\n".join(
-        f"[{c['doc_title']}]\n{c['text']}" for c in contexts
+        f"[{c['doc_title']}]\n{c.get('parent_text') or c['text']}" for c in contexts
     )
     user_content = f"Bağlam:\n{context_block}\n\nSoru: {question}"
     return [

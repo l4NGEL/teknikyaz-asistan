@@ -78,7 +78,12 @@ def chunk_corpus(corpus_path=None) -> list[Chunk]:
                         doc_url=doc["url"],
                         chunk_id=f"{doc['title']}::{i}",
                         text=piece,
-                        metadata={"chunk_index": i, "total_chunks": len(pieces)},
+                        metadata={
+                            "chunk_index": i,
+                            "total_chunks": len(pieces),
+                            "parent_id": doc["title"],
+                            "level": "child",
+                        },
                     )
                 )
     return chunks

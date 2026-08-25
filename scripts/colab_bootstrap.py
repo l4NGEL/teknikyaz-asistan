@@ -1,22 +1,9 @@
 #!/usr/bin/env python3
-"""Colab runtime: kaynak yamalari + guvenli paket kurulumu."""
+"""Colab runtime: guvenli paket kurulumu."""
 from __future__ import annotations
 
-import shutil
 import subprocess
 import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent.parent
-PATCHES = ROOT / "scripts" / "colab_patches"
-
-PATCH_MAP = {
-    "nlp_tasks/summarization.py": "src/nlp_tasks/summarization.py",
-    "nlp_tasks/qa.py": "src/nlp_tasks/qa.py",
-    "nlp_tasks/translation.py": "src/nlp_tasks/translation.py",
-    "rag/rag_pipeline.py": "src/rag/rag_pipeline.py",
-    "finetune/qlora_train.py": "src/finetune/qlora_train.py",
-}
 
 
 def _pip(*args: str) -> None:
@@ -111,6 +98,12 @@ def install_packages() -> None:
     _pip("--force-reinstall", "--no-cache-dir", "transformers==4.46.3", "trl==0.12.2")
     # 2) pyarrow/datasets: trl'in KENDI datasets bagimliligi bunlari bozabiliyor,
     # bu yuzden transformers/trl'den SONRA tekrar pinliyoruz.
+    # pyarrow 17.0.0 (Temmuz 2024) icin PyPI'da cp313 (Python 3.13) wheel'i YOK --
+    # Colab varsayilan runtime'ini 3.13'e gecirince pip kaynaktan derlemeye
+    # calisiyor ("Getting requirements to build wheel did not run successfully"),
+    # Colab'da derleme zinciri (cmake/Arrow C++) olmadigi icin bu daima basarisiz
+    # oluyor. pyarrow 18.0.0 ilk cp313 wheel'i saglayan surum -- datasets==2.21.0
+    # zaten pyarrow>=15.0.0 istiyor (ust sinir yok), o yuzden bu bump'i guvenle kabul ediyor.
     subprocess.run(
         [sys.executable, "-m", "pip", "uninstall", "-y", "pyarrow", "datasets"],
         capture_output=True,
@@ -118,7 +111,7 @@ def install_packages() -> None:
     _pip(
         "--force-reinstall",
         "--no-cache-dir",
-        "pyarrow==17.0.0",
+        "pyarrow==18.0.0",
         "datasets==2.21.0",
     )
     # 3) numpy+scipy. Yukaridaki adimlarin herhangi biri numpy'i kendi
@@ -139,28 +132,18 @@ def install_packages() -> None:
     print("pyarrow/datasets/huggingface-hub pinlendi. Import oncesi runtime restart onerilir.")
 
 
-def apply_patches() -> None:
-    if not PATCHES.exists():
-        raise FileNotFoundError(
-            f"{PATCHES} bulunamadi. Guncel zip'i Drive'a yukleyin."
-        )
-    for rel_patch, rel_dst in PATCH_MAP.items():
-        src = PATCHES / rel_patch
-        dst = ROOT / rel_dst
-        if not src.exists():
-            continue
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dst)
-        print(f"Yama: {rel_dst}")
+def _download_nltk_data() -> None:
+    """sumy (extractive ozetleme) cumle tokenizer'i icin NLTK'nin punkt_tab
+    kaynagini ister; taze bir Colab runtime'inda hic kurulu gelmiyor
+    (LookupError: Resource punkt_tab not found)."""
+    import nltk
 
-    qlora = ROOT / "src/finetune/qlora_train.py"
-    if "_seq_length_config_kwargs" not in qlora.read_text(encoding="utf-8"):
-        raise RuntimeError("qlora_train.py yamasi uygulanamadi.")
+    nltk.download("punkt_tab", quiet=True)
 
 
 def main() -> None:
-    apply_patches()
     install_packages()
+    _download_nltk_data()
     print("Colab bootstrap tamam.")
 
 

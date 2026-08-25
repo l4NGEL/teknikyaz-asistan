@@ -49,8 +49,11 @@ def chat(req: ChatRequest):
     hallucination_score = None
     try:
         context_texts = result.get("context_texts", [])
-        if context_texts:
-            hallucination_score = 1.0 - groundedness_score(result["answer"], context_texts)
+        scored = result.get("draft_answer") or result["answer"]
+        if context_texts and not result.get("needs_human_review"):
+            hallucination_score = 1.0 - groundedness_score(scored, context_texts)
+        elif context_texts and result.get("draft_answer"):
+            hallucination_score = 1.0 - groundedness_score(result["draft_answer"], context_texts)
     except Exception:
         pass  # XAI kontrolü opsiyoneldir; başarısız olursa yanıtı engellemez
 
@@ -66,6 +69,12 @@ def chat(req: ChatRequest):
         sources=result["sources"],
         hallucination_score=hallucination_score,
         turn_count=result["turn_count"],
+        confidence=result.get("confidence"),
+        confidence_bucket=result.get("confidence_bucket"),
+        needs_human_review=bool(result.get("needs_human_review")),
+        review_reason=result.get("review_reason"),
+        draft_answer=result.get("draft_answer"),
+        agent_trace=result.get("agent_trace") or [],
     )
 
 

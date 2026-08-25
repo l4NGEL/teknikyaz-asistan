@@ -8,6 +8,7 @@ data/raw/
 data/processed/
 data/chroma_db/
 data/metrics.sqlite3
+data/eval/last_retrieval_report.json
 
 models/
 mlruns/

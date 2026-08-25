@@ -83,7 +83,7 @@ def train(base_model: str | None = None, output_dir: str | None = None) -> str:
     model, tokenizer = load_quantized_model_and_tokenizer(base_model)
     peft_model = build_lora_model(model)
 
-    train_ds, eval_ds = build_hf_dataset()
+    train_ds, _eval_ds_unused = build_hf_dataset()  # eval bilerek calistirilmiyor (asagidaki not)
 
     sft_kwargs = {
         "output_dir": output_dir,
@@ -92,8 +92,16 @@ def train(base_model: str | None = None, output_dir: str | None = None) -> str:
         "gradient_accumulation_steps": QLORA_CONFIG.gradient_accumulation_steps,
         "learning_rate": QLORA_CONFIG.learning_rate,
         "logging_steps": 10,
-        "eval_strategy": "epoch",
-        "save_strategy": "epoch",
+        # ONEMLI: eval_strategy/save_strategy BILEREK "no". Onceki denemede eval,
+        # per_device_eval_batch_size ayarlansa bile (HF varsayilani 8'di, sonra 1'e
+        # cektik) epoch sinirinda tetiklenip bir sonraki egitim adiminda OOM'a yol acan
+        # bellek sicramasinin kaynagiydi (traceback: _maybe_log_save_evaluate ->
+        # _evaluate). T4'te guvenilir bir sekilde BITIRMEK, epoch-ici val_loss egrisinden
+        # daha degerli -- kalite egitim SONRASI gercek sorularla (answer(...)) zaten
+        # test ediliyor. Ara checkpoint de kapali (save_strategy="no"); tek kayit,
+        # train() sonundaki trainer.save_model() cagrisiyla oluyor.
+        "eval_strategy": "no",
+        "save_strategy": "no",
         "bf16": True,
         "report_to": ["mlflow"],
     }
@@ -110,7 +118,6 @@ def train(base_model: str | None = None, output_dir: str | None = None) -> str:
         "model": peft_model,
         "args": sft_config,
         "train_dataset": train_ds,
-        "eval_dataset": eval_ds,
     }
     trainer_kwargs.update(_seq_length_trainer_kwargs())
     if "processing_class" in trainer_params:

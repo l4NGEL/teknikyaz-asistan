@@ -28,7 +28,11 @@ def index_chunks(chunks: list[dict], collection_name: str | None = None, batch_s
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i: i + batch_size]
         texts = [c["text"] for c in batch]
-        embeddings = embed_passages(texts)
+        # Baslik embed edilen metne dahil edilmezse konu kimligi kayboluyor: birçok
+        # şablonun govde metni jenerik yazilmis (orn. "README Sablonu"nun govdesinde
+        # "readme" kelimesi hic gecmiyor, konuyu sadece baslik tasiyor).
+        titled_texts = [f"{c['doc_title']}: {t}" for c, t in zip(batch, texts)]
+        embeddings = embed_passages(titled_texts)
         collection.upsert(
             ids=[c["chunk_id"] for c in batch],
             embeddings=embeddings,

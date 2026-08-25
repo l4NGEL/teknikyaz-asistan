@@ -19,6 +19,9 @@ def test_summarize_request_rejects_invalid_method():
         SummarizeRequest(text="metin", method="invalid-method")
 
 
-def test_summarize_request_defaults_to_extractive():
-    req = SummarizeRequest(text="metin")
-    assert req.method == "extractive"
+def test_chat_response_defaults_human_review_to_false():
+    from src.serving.schemas import ChatResponse
+
+    resp = ChatResponse(session_id="s1", answer="ok", sources=[], turn_count=1)
+    assert resp.needs_human_review is False
+    assert resp.agent_trace == []

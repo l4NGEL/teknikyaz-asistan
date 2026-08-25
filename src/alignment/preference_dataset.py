@@ -42,7 +42,14 @@ def build_preference_dataset(sft_path=None, max_examples: int | None = None) -> 
             # SFT örneklerinde `instruction` sabittir (bkz. instruction_dataset.py); asıl
             # değişen içerik `input`teki (taslak notlar) kısımdır, bu yüzden prompt'u
             # ikisini birleştirerek kuruyoruz — tıpkı fine-tuning'de kullanılan format gibi.
+            # `contexts` varsa (artık her zaman var), gerçek RAG promptuyla (build_prompt)
+            # AYNI "Bağlam:/Soru:" biçimini kullanıyoruz -- DPO da, SFT gibi, modelin
+            # çıkarımda gerçekten göreceği formatı öğrensin diye.
             prompt_text = f"{ex['instruction']}\n\n{ex['input']}"
+            contexts = ex.get("contexts") or []
+            if contexts:
+                context_block = "\n\n".join(f"[{c['doc_title']}]\n{c['text']}" for c in contexts)
+                prompt_text = f"Bağlam:\n{context_block}\n\nSoru: {prompt_text}"
             chosen = ex["output"]
             rejected = _generate_ungrounded_answer(prompt_text, generator)
 
