@@ -33,20 +33,20 @@ Portföy ölçeği (127 orijinal belge, 146 chunk). Amaç SOTA liderboard değil
 
 ```mermaid
 flowchart LR
-    A[127 Türkçe şablon] --> B[Hiyerarşik chunk]
-    B --> C[Dense e5]
-    B --> D[BM25]
-    C --> E[RRF fusion]
+    A["127 Türkçe şablon"] --> B["Hiyerarşik chunk"]
+    B --> C["Dense e5"]
+    B --> D["BM25"]
+    C --> E["RRF fusion"]
     D --> E
-    E --> F[Precision@k / Recall@k]
-    B --> G[SFT + QLoRA]
-    G --> H[DPO]
-    E --> I[LangGraph]
+    E --> F["Precision-k and Recall-k"]
+    B --> G["SFT + QLoRA"]
+    G --> H["DPO"]
+    E --> I["LangGraph"]
     H --> I
-    I --> J{güven / çelişki}
-    J -->|düşük| K[İnsan onayı]
-    J -->|yeterli| L[FastAPI]
-    L --> M[NLI groundedness]
+    I --> J{"güven veya çelişki"}
+    J -->|"düşük"| K["İnsan onayı"]
+    J -->|"yeterli"| L["FastAPI"]
+    L --> M["NLI groundedness"]
 ```
 
 **Retrieval:** dense + BM25 adayları birleşir, RRF sıraları korur, cross-encoder *ek* skordur. Reranker tek hakem olunca `README Şablonu` top-5'ten düşüyordu.
