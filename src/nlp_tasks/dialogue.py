@@ -63,20 +63,29 @@ def get_or_create_session(session_id: str) -> DialogueSession:
 
 
 def chat(session_id: str, user_message: str) -> dict:
-    """Tek bir diyalog turunu işler: RAG pipeline'ı çağırır, geçmişi günceller."""
-    from src.rag.rag_pipeline import answer as rag_answer
+    """Tek bir diyalog turunu işler: çok ajanlı grafı çağırır, geçmişi günceller."""
+    from src.agents.graph import run_agents
 
     session = get_or_create_session(session_id)
     standalone_query = rewrite_standalone_query(session, user_message)
     session.add_user_turn(user_message)
 
-    result = rag_answer(standalone_query)
-    session.add_assistant_turn(result["answer"])
+    result = run_agents(standalone_query)
+    public_answer = result.get("answer") or ""
+    session.add_assistant_turn(public_answer)
 
+    contexts = result.get("contexts") or []
     return {
         "session_id": session_id,
-        "answer": result["answer"],
+        "answer": public_answer,
         "sources": result.get("sources", []),
-        "context_texts": [c["text"] for c in result.get("contexts", [])],
+        "context_texts": [c.get("parent_text") or c.get("text") or "" for c in contexts],
         "turn_count": len(session.history) // 2,
+        "confidence": result.get("confidence"),
+        "confidence_bucket": result.get("confidence_bucket"),
+        "needs_human_review": bool(result.get("needs_human_review")),
+        "review_reason": result.get("review_reason"),
+        "draft_answer": result.get("draft_answer"),
+        "agent_trace": result.get("agent_trace") or [],
+        "conflicts": result.get("conflicts") or [],
     }

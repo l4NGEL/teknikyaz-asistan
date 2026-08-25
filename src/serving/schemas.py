@@ -20,6 +20,12 @@ class ChatResponse(BaseModel):
     sources: list[SourceRef]
     hallucination_score: float | None = None
     turn_count: int
+    confidence: float | None = None
+    confidence_bucket: str | None = None
+    needs_human_review: bool = False
+    review_reason: str | None = None
+    draft_answer: str | None = None
+    agent_trace: list[str] = Field(default_factory=list)
 
 
 class ClassifyRequest(BaseModel):

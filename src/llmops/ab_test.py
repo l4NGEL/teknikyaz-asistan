@@ -26,7 +26,13 @@ class ABTestResult:
     winner: str | None
 
 
-def paired_ttest(scores_a: list[float], scores_b: list[float], alpha: float = 0.05) -> ABTestResult:
+def paired_ttest(
+    scores_a: list[float],
+    scores_b: list[float],
+    variant_a_name: str = "A",
+    variant_b_name: str = "B",
+    alpha: float = 0.05,
+) -> ABTestResult:
     if len(scores_a) != len(scores_b):
         raise ValueError("İki skor listesi aynı uzunlukta olmalı (eşleştirilmiş test)")
 
@@ -36,10 +42,10 @@ def paired_ttest(scores_a: list[float], scores_b: list[float], alpha: float = 0.
     significant = bool(p_value < alpha)
     winner = None
     if significant:
-        winner = "B" if mean_b > mean_a else "A"
+        winner = variant_b_name if mean_b > mean_a else variant_a_name
 
     return ABTestResult(
-        variant_a_name="A", variant_b_name="B",
+        variant_a_name=variant_a_name, variant_b_name=variant_b_name,
         mean_a=mean_a, mean_b=mean_b, p_value=float(p_value),
         significant=significant, winner=winner,
     )
@@ -57,7 +63,7 @@ def run_ab_test(
     scores_a = [score_fn(ex, eval_fn_a(ex)) for ex in eval_examples]
     scores_b = [score_fn(ex, eval_fn_b(ex)) for ex in eval_examples]
 
-    result = paired_ttest(scores_a, scores_b)
+    result = paired_ttest(scores_a, scores_b, variant_a_name, variant_b_name)
 
     with run(f"ab-test-{variant_a_name}-vs-{variant_b_name}"):
         log_metrics({

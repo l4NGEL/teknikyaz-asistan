@@ -40,7 +40,13 @@ def _get_pipe():
 
 def model_based_check(text: str) -> dict:
     result = _get_pipe()(text)[0]
-    is_offensive = result["label"].upper() in ("OFFENSIVE", "LABEL_1", "1")
+    # Bu model ikili (offensive/not) degil -- 5 sinifli: INSULT, OTHER, PROFANITY,
+    # RACIST, SEXIST (bkz. model config.json id2label). "OTHER" saldirgan olmayan
+    # genel kategori; digger 4 etiketten HERHANGI biri saldirgan icerik demektir.
+    # (Onceki hali "OFFENSIVE"/"LABEL_1"/"1" ariyordu -- bu model hicbir zaman bu
+    # etiketleri uretmedigi icin is_offensive HER ZAMAN False donuyordu, model
+    # tabanli kontrol sessizce hicbir sey yakalamiyordu.)
+    is_offensive = result["label"].upper() != "OTHER"
     return {"is_offensive": is_offensive, "label": result["label"], "score": float(result["score"])}
 
 

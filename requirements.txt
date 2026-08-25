@@ -10,13 +10,17 @@ sentence-transformers>=3.0
 
 # Fine-tuning / alignment
 peft>=0.11
-bitsandbytes>=0.43
+bitsandbytes>=0.46.1
 trl>=0.19.1,<0.24
 evaluate
 
 # RAG
 chromadb>=0.5
 rank-bm25
+
+# LangChain uyumluluk katmanı (yalnızca -core: Runnable/Document soyutlamaları için yeterli)
+langchain-core>=0.3
+langgraph>=0.2
 
 # NLP yardımcı görevler
 sumy
@@ -43,3 +47,6 @@ ruff>=0.5
 # XAI
 scikit-learn
 scipy
+
+# Optimize/benchmark (CPU bellek olcumu)
+psutil

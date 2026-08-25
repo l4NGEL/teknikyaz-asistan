@@ -10,8 +10,12 @@ Zero-shot çıktısı, fine-tuning için ilk etiketleri otomatik üretmekte de k
 """
 from __future__ import annotations
 
+import re
+
 import numpy as np
 import torch
+from sklearn.metrics import classification_report as _sk_classification_report
+from sklearn.metrics import precision_recall_fscore_support
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -21,6 +25,41 @@ from transformers import (
 )
 
 from src.config import CLASSIFICATION_LABELS, MODEL_CONFIG, MODELS_DIR
+
+
+def label_for_title(doc_title: str) -> str:
+    """Doküman başlığını CLASSIFICATION_LABELS kategorilerinden birine eşler.
+
+    Önek eşleştirmesi kullanır (tam eşleştirme değil): örn. "API Referansı: X" ve
+    "API Dokümantasyonu Şablonu" ikisi de "API Dokümantasyonu"ya eşlenir. Bu fonksiyon
+    src/'de tek bir yerde tutulur ve buradan import edilir -- daha önce birden fazla
+    notebook hücresinde ayrı ayrı (ve tutarsız biçimde, biri düzeltilip diğeri
+    unutularak) kopyalanmıştı, bu da aynı etiketleme hatasının farklı yerlerde
+    tekrar tekrar ortaya çıkmasına yol açmıştı.
+    """
+    prefixes = [
+        ("API Referansı", "API Dokümantasyonu"),
+        ("README", "README"),
+        ("API Dokümantasyonu", "API Dokümantasyonu"),
+        ("Kurulum Kılavuzu", "Kurulum Kılavuzu"),
+        ("Kullanıcı Kılavuzu", "Kullanıcı Kılavuzu"),
+        ("SSS", "SSS"),
+        ("Mimari Doküman", "Mimari Doküman"),
+        ("Sürüm Notları", "Sürüm Notları"),
+    ]
+    for prefix, label in prefixes:
+        if doc_title.startswith(prefix):
+            return label
+    return "Diğer"
+
+
+def _slugify_label(label: str) -> str:
+    """Metrik ismi olarak kullanilabilecek ASCII-guvenli kisa ad (MLflow dosya
+    tabanli depoda metrik adi dogrudan dosya adi oluyor; Turkce/ozel karakterler
+    ve bosluklar sorun cikarabiliyor)."""
+    table = str.maketrans("çğıöşüİÇĞIÖŞÜ", "cgiosuicgiosu")
+    slug = label.translate(table).lower()
+    return re.sub(r"[^a-z0-9]+", "_", slug).strip("_")
 
 _zero_shot_pipe = None
 
@@ -80,12 +119,34 @@ def train(
         save_strategy="epoch",
         logging_steps=10,
         load_best_model_at_end=bool(eval_ds),
+        report_to=["mlflow"],  # report_to belirtilmezse Trainer kurulu HER tracker'i (orn.
+        # wandb) otomatik etkinlestiriyor ve ilk kullanimda interaktif bir giris/hesap
+        # sorusuyla notebook hücresini bloke ediyor -- diger egitim fonksiyonlarindaki
+        # (qlora_train.py, dpo_train.py) gibi sadece mlflow'a sabitliyoruz.
     )
 
     def compute_metrics(pred):
         preds = np.argmax(pred.predictions, axis=1)
-        acc = (preds == pred.label_ids).mean()
-        return {"accuracy": float(acc)}
+        gold = pred.label_ids
+        acc = (preds == gold).mean()
+
+        # Kucuk eval setlerinde tek bir "accuracy" sayisi yaniltici olabiliyor (orn.
+        # coğunluk sinifini her seferinde tahmin eden bir model de yuksek accuracy
+        # alabilir). Sinif basina precision/recall/f1 + kac ornek uzerinden
+        # hesaplandigi (support), hangi kategorilerin gercekten ogrenilemedigini
+        # gosteriyor.
+        present = sorted(set(gold.tolist()) | set(preds.tolist()))
+        precision, recall, f1, support = precision_recall_fscore_support(
+            gold, preds, labels=present, average=None, zero_division=0
+        )
+        metrics = {"accuracy": float(acc), "macro_f1": float(f1.mean())}
+        for idx, p, r, f, s in zip(present, precision, recall, f1, support):
+            slug = _slugify_label(CLASSIFICATION_LABELS[idx])
+            metrics[f"precision_{slug}"] = float(p)
+            metrics[f"recall_{slug}"] = float(r)
+            metrics[f"f1_{slug}"] = float(f)
+            metrics[f"support_{slug}"] = int(s)
+        return metrics
 
     trainer = Trainer(
         model=model,
@@ -110,3 +171,30 @@ def load_and_classify(text: str, model_dir: str | None = None) -> dict:
     probs = torch.softmax(logits, dim=-1).squeeze().tolist()
     idx = int(np.argmax(probs))
     return {"label": CLASSIFICATION_LABELS[idx], "scores": dict(zip(CLASSIFICATION_LABELS, probs))}
+
+
+def evaluate_classification_report(
+    texts: list[str], labels: list[int], model_dir: str | None = None
+) -> str:
+    """Verilen (texts, labels) uzerinde kayitli siniflandiriciyi calistirip
+    sklearn'in standart sinif-basina precision/recall/f1/support tablosunu
+    metin olarak dondurur -- README/CV'ye eklenebilecek, tek bir accuracy
+    sayisindan cok daha durust bir ozet."""
+    model_dir = model_dir or str(MODELS_DIR / "classifier")
+    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+    model.eval()
+
+    inputs = tokenizer(texts, truncation=True, padding=True, return_tensors="pt", max_length=256)
+    with torch.no_grad():
+        logits = model(**inputs).logits
+    preds = torch.argmax(logits, dim=-1).tolist()
+
+    present = sorted(set(labels) | set(preds))
+    return _sk_classification_report(
+        labels,
+        preds,
+        labels=present,
+        target_names=[CLASSIFICATION_LABELS[i] for i in present],
+        zero_division=0,
+    )

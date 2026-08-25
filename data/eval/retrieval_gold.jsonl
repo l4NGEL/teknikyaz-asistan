@@ -1,0 +1,32 @@
+{"query": "Bir README'de hangi bölümler olmalı?", "relevant_titles": ["README Şablonu"]}
+{"query": "README şablonunda kurulum ve lisans nasıl yazılır?", "relevant_titles": ["README Şablonu"]}
+{"query": "API dokümantasyonu nasıl yapılandırılır?", "relevant_titles": ["API Dokümantasyonu Şablonu"]}
+{"query": "OpenAPI ile endpoint nasıl belgelenir?", "relevant_titles": ["API Dokümantasyonu Şablonu"]}
+{"query": "Kurulum kılavuzu şablonunda hangi adımlar bulunur?", "relevant_titles": ["Kurulum Kılavuzu Şablonu"]}
+{"query": "Kullanıcı kılavuzu nasıl yazılır?", "relevant_titles": ["Kullanıcı Kılavuzu Şablonu"]}
+{"query": "SSS belgesi hangi soruları kapsamalı?", "relevant_titles": ["SSS (Sıkça Sorulan Sorular) Şablonu"]}
+{"query": "Mimari doküman şablonunda hangi bölümler olmalı?", "relevant_titles": ["Mimari Doküman Şablonu"]}
+{"query": "Changelog yani sürüm notları nasıl yazılır?", "relevant_titles": ["Sürüm Notları (Changelog) Şablonu"]}
+{"query": "Sorun giderme rehberinde kök neden nasıl belgelenir?", "relevant_titles": ["Sorun Giderme Rehberi Şablonu"]}
+{"query": "Test planı dokümanı neleri içermeli?", "relevant_titles": ["Test Planı Dokümanı Şablonu"]}
+{"query": "Katkı sağlama rehberinde pull request süreci nasıl anlatılır?", "relevant_titles": ["Katkı Sağlama Rehberi Şablonu"]}
+{"query": "Güvenlik politikası şablonunda hangi kontroller var?", "relevant_titles": ["Güvenlik Politikası Şablonu"]}
+{"query": "Felaket kurtarma planı nasıl yazılır?", "relevant_titles": ["Felaket Kurtarma Planı Şablonu"]}
+{"query": "Hız sınırlama rate limit politikası nedir?", "relevant_titles": ["Hız Sınırlama (Rate Limit) Politikası Şablonu"]}
+{"query": "Olay sonrası postmortem rapor şablonu", "relevant_titles": ["Olay Sonrası Rapor (Postmortem) Şablonu"]}
+{"query": "Nöbetçi on-call el kitabı neleri kapsar?", "relevant_titles": ["Nöbetçi (On-Call) El Kitabı Şablonu"]}
+{"query": "Kod inceleme kontrol listesinde bakılacaklar", "relevant_titles": ["Kod İnceleme Kontrol Listesi Şablonu"]}
+{"query": "Veri saklama politikası şablonu", "relevant_titles": ["Veri Saklama Politikası Şablonu"]}
+{"query": "Yeni başlayan onboarding rehberi nasıl hazırlanır?", "relevant_titles": ["Yeni Başlayan (Onboarding) Rehberi Şablonu"]}
+{"query": "API sürümleme politikası nasıl uygulanır?", "relevant_titles": ["API Sürümleme Politikası Şablonu"]}
+{"query": "Kullanımdan kaldırma deprecation duyurusu nasıl yazılır?", "relevant_titles": ["Kullanımdan Kaldırma (Deprecation) Duyurusu Şablonu"]}
+{"query": "Terimler sözlüğü glossary şablonu", "relevant_titles": ["Terimler Sözlüğü (Glossary) Şablonu"]}
+{"query": "Bildirim servisi README'si neleri anlatır?", "relevant_titles": ["README — Bildirim Servisi"]}
+{"query": "Kimlik doğrulama ve yetkilendirme mimarisi", "relevant_titles": ["Mimari Doküman — Kimlik Doğrulama ve Yetkilendirme"]}
+{"query": "Telemetri veri hattı mimarisi nasıl kurulur?", "relevant_titles": ["Mimari Doküman — Telemetri Veri Hattı"]}
+{"query": "Randevu ve rezervasyon sistemi README", "relevant_titles": ["README — Randevu ve Rezervasyon Sistemi"]}
+{"query": "Destek bileti sistemi kurulumu", "relevant_titles": ["Kurulum Kılavuzu — Destek Bileti Sistemi"]}
+{"query": "Değişiklik yönetimi change management politikası", "relevant_titles": ["Değişiklik Yönetimi (Change Management) Politikası Şablonu"]}
+{"query": "Erişilebilirlik accessibility kontrol listesi", "relevant_titles": ["Erişilebilirlik (Accessibility) Kontrol Listesi Şablonu"]}
+{"query": "Veri sınıflandırma politikası şablonu", "relevant_titles": ["Veri Sınıflandırma Politikası Şablonu"]}
+{"query": "Kod stil rehberi şablonu neleri kapsar?", "relevant_titles": ["Kod Stil Rehberi Şablonu"]}

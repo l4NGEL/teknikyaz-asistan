@@ -1,91 +1,119 @@
-# TeknikYaz Asistanı — Türkçe Teknik Dokümantasyon Yazım Asistanı
+# TeknikYaz
 
-Bu proje, büyük dil modelleri / NLP mühendisliği alanında (RAG mimarisi, LLM fine-tuning,
-alignment, inference optimizasyonu, LLMOps, XAI) uçtan uca, uygulamalı bir öğrenim/portföy
-projesidir: kullanıcının verdiği kaba taslak notları, iyi yazılmış Türkçe teknik
-dokümantasyon örneklerinin (README, API dokümantasyonu, kurulum kılavuzu vb.) stilini ve
-yapısını referans alarak düzgün, tutarlı bir dokümana dönüştüren bir asistan.
+**Türkçe teknik dokümantasyon asistanı** — hiyerarşik hibrit RAG, LangGraph çok ajanlı orkestrasyon, QLoRA/DPO, ölçülebilir retrieval ve düşük güvende insan onayı.
 
-Çalışma ortamı **Google Colab / Kaggle** (ücretsiz GPU) için tasarlandı. Her aşama hem
-bağımsız bir Colab notebook'u hem de `src/` altında yeniden kullanılabilir, test edilmiş
-Python modülleri olarak mevcut.
+Taslak notları, orijinal Türkçe şablon korpusuna (README, API, kurulum, mimari…) dayandırarak düzgün belgeye çevirir. Colab/Kaggle GPU ve yerel PyTorch ile uçtan uca çalışır.
+
+[English](#english) · [Çalıştırma günlüğü](docs/CALISTIRMA_GUNLUGU.md)
+
+<p>
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
+  <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-transformers%20%2B%20PEFT%20%2B%20TRL-EE4C2C?logo=pytorch&logoColor=white">
+  <img alt="RAG" src="https://img.shields.io/badge/RAG-hybrid%20dense%20%2B%20BM25%20%2B%20RRF-0EA5E9">
+  <img alt="LangGraph" src="https://img.shields.io/badge/Agents-LangGraph-111827">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-54%20passed-22C55E">
+</p>
+
+## Ölçülen sonuçlar
+
+Portföy ölçeği (127 orijinal belge, 146 chunk). Amaç SOTA liderboard değil; her katmanın **gerçekten çalıştığını** ve hataların nasıl yakalandığını göstermek.
+
+| Katman | Sonuç |
+|---|---|
+| Retrieval, 32 gold soru, RTX 2080 | Rerank-only **P@1 0.66** → RRF fusion sonrası **P@1 1.00 / Recall@5 1.00** |
+| Türkçe sınıflandırıcı (`dbmdz/bert-base-turkish-cased`) | Accuracy **0.955**, macro F1 **0.972** (sessiz etiket hatası F1 0.32 iken yakalandı) |
+| QLoRA `Qwen2.5-3B-Instruct` | Eğitilebilir parametre **%0.24**, val loss 1.84 → 1.47 |
+| Yerel NF4 generate (64 token, RTX 2080) | **P95 6.4 s**, 5.8 GB VRAM |
+| DistilBERT öğrenci (sınıflandırıcı) | ~**%49** daha düşük gecikme |
+| XAI | Base modelde 3 tekrarlanabilir halüsinasyon; NLI groundedness **0.20** ile yakalandı |
+
+32 soruluk gold set, web-ölçeği IR değildir. Şablon niyeti ("nasıl yazılır") başlık sinyalidir, gizli etiket sızıntısı değil. Ayrıntı: [`docs/CALISTIRMA_GUNLUGU.md`](docs/CALISTIRMA_GUNLUGU.md).
 
 ## Mimari
 
 ```mermaid
 flowchart LR
-    A[Elle yazılmış doküman şablonları\nREADME, API doc, kurulum vb.] --> B[Chunking + Temizlik]
-    B --> C[Embedding\nmultilingual-e5]
-    C --> D[(Vektör DB\nChroma)]
-    B --> E[Instruction Dataset\ntaslak notlar -> düzgün doküman]
-    E --> F[QLoRA Fine-tuning]
-    F --> G[DPO Alignment]
-    G --> H[Quantization / Pruning / Distillation]
-    D --> I[RAG Pipeline]
+    A[127 Türkçe şablon] --> B[Hiyerarşik chunk]
+    B --> C[Dense e5]
+    B --> D[BM25]
+    C --> E[RRF fusion]
+    D --> E
+    E --> F[Precision@k / Recall@k]
+    B --> G[SFT + QLoRA]
+    G --> H[DPO]
+    E --> I[LangGraph]
     H --> I
-    I --> J[FastAPI Serving]
-    J --> K[XAI: Halüsinasyon + Attribution + Sır Sızıntısı Kontrolü]
-    J --> L[LLMOps: MLflow + A/B Test + Dashboard]
+    I --> J{güven / çelişki}
+    J -->|düşük| K[İnsan onayı]
+    J -->|yeterli| L[FastAPI]
+    L --> M[NLI groundedness]
 ```
 
-## Kapsanan Teknik Beceriler → Proje Bileşeni Eşleşmesi
+**Retrieval:** dense + BM25 adayları birleşir, RRF sıraları korur, cross-encoder *ek* skordur. Reranker tek hakem olunca `README Şablonu` top-5'ten düşüyordu.
 
-| Beceri | Bu projede nerede |
-|---|---|
-| Transformer tabanlı LLM eğitimi | [`src/finetune/qlora_train.py`](src/finetune/qlora_train.py), [`notebooks/04_fine_tuning_qlora.ipynb`](notebooks/04_fine_tuning_qlora.ipynb) |
-| RAG mimarisi (vektör DB, embedding, belge yönetimi) | [`src/rag/`](src/rag), [`notebooks/03_rag_sistemi.ipynb`](notebooks/03_rag_sistemi.ipynb) |
-| Metin sınıflandırma | [`src/nlp_tasks/classification.py`](src/nlp_tasks/classification.py) — doküman türü sınıflandırma |
-| Varlık tanıma (NER) | [`src/nlp_tasks/ner.py`](src/nlp_tasks/ner.py) — kod parçası, CLI bayrağı, sürüm, dosya yolu |
-| Özetleme | [`src/nlp_tasks/summarization.py`](src/nlp_tasks/summarization.py) |
-| Soru-cevap | [`src/nlp_tasks/qa.py`](src/nlp_tasks/qa.py) |
-| Diyalog yönetimi | [`src/nlp_tasks/dialogue.py`](src/nlp_tasks/dialogue.py) |
-| Makine çevirisi | [`src/nlp_tasks/translation.py`](src/nlp_tasks/translation.py) |
-| Quantization / Pruning / Distillation | [`src/optimize/`](src/optimize) |
-| LLMOps (deney takibi, versiyonlama, A/B test, izleme) | [`src/llmops/`](src/llmops) |
-| LoRA / QLoRA / PEFT / instruction tuning | [`src/finetune/qlora_train.py`](src/finetune/qlora_train.py) |
-| RLHF / DPO / PPO (alignment) | [`src/alignment/`](src/alignment) |
-| PyTorch ile eğitim/değerlendirme/dağıtım | tüm `src/` modülleri, `torch` + `transformers` |
-| Docker / Kubernetes | [`docker/`](docker) |
-| Git / CI-CD | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
-| Linux/bash betikleri | [`scripts/`](scripts) |
-| Güvenilirlik / XAI / halüsinasyon azaltma / önyargı tespiti | [`src/xai/`](src/xai) |
+**Ajanlar:** yönlendirici → retrieve → yazar → eleştirmen (çelişki + groundedness) → konsensüs → `needs_human_review`.
+
+## Depo
+
+```
+src/agents/          LangGraph: router, conflict, consensus
+src/rag/             hybrid retrieve, RRF fusion, hierarchy, eval
+src/finetune/        QLoRA
+src/alignment/       DPO
+src/xai/             groundedness, güven, HITL eşiği
+src/optimize/        quantize / prune / distill + vLLM istemcisi
+src/serving/         FastAPI
+src/nlp_tasks/       sınıflandırma, NER, özet, QA, çeviri, diyalog
+notebooks/           Colab 00–08
+data/eval/           retrieval gold (Precision@k / Recall@k)
+docker/              API + isteğe bağlı vLLM GPU profili
+```
 
 ## Kurulum
 
-### Colab (önerilen)
-`notebooks/00_ortam_kurulumu.ipynb` dosyasını Colab'da açıp çalıştırın; proje dosyalarını
-Drive'dan alıp bağımlılıkları kurar. GPU runtime seçmeyi unutmayın (Runtime → Çalışma
-zamanını değiştir → T4 GPU).
+**Colab (önerilen, GPU):** [`notebooks/00_ortam_kurulumu.ipynb`](notebooks/00_ortam_kurulumu.ipynb) — Runtime → T4 GPU.
 
-### Yerel (sadece serving/test için, GPU gerektirmez)
+**Yerel testler:**
+
 ```bash
 python -m venv .venv
-source .venv/Scripts/activate  # Windows Git Bash
+# Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 pytest tests/ -q
 ```
 
-## Önerilen çalışma sırası
+Retrieval skor kartı (Chroma indeksi gerekir):
 
-1. `01_veri_hazirlama` — Elle yazılmış doküman şablonu korpusunu chunk'lara böl, taslak
-   notlar → düzgün doküman çiftlerinden oluşan instruction veri setini üret.
-2. `02_nlp_gorevleri` — Sınıflandırma, NER, özetleme, çeviri, ekstraktif QA modellerini dene.
-3. `03_rag_sistemi` — Embedding + Chroma + retrieval + generation ile temel RAG'ı kur.
-4. `04_fine_tuning_qlora` — Taslak notlardan doküman üreten QLoRA fine-tune.
-5. `05_alignment_dpo` — İyi yapılandırılmış doküman vs. serbest/tutarsız üretim ile DPO.
-6. `06_inference_optimizasyon` — Quantization, pruning, distillation, benchmark.
-7. `07_llmops_deney_takibi` — MLflow ile deney takibi, A/B test, model versiyonlama.
-8. `08_xai_guvenilirlik` — Halüsinasyon tespiti, attribution, sır sızıntısı/güvenlik kontrolü.
+```bash
+python scripts/run_retrieval_eval.py
+```
 
-Sonda `docker/` ile servisi konteynerleştirip `serving/api.py`'yi FastAPI üzerinden ayağa
-kaldırabilir, `.github/workflows/ci.yml` ile CI'yi GitHub'a push ettiğinizde otomatik
-çalıştırabilirsiniz.
+vLLM (ayrı GPU konteyneri; imaj büyük):
 
-## Neden bu domain?
+```bash
+docker compose --profile gpu -f docker/docker-compose.yml up vllm
+python scripts/run_vllm_bench.py
+```
 
-Dokümantasyon yazımı, her yazılım ekibinin gerçek ve tekrar eden bir ihtiyacıdır: dağınık
-notlardan tutarlı, iyi yapılandırılmış teknik metin üretmek RAG + fine-tuning + alignment
-+ XAI'nin hepsinin anlamlı olduğu somut bir problemdir (özellikle "modelin var olmayan bir
-özelliği/parametreyi uydurması" riski, XAI/halüsinasyon bölümüne gerçek bir gerekçe verir).
-Kullanılan tüm örnek dokümanlar bu proje için orijinal olarak yazılmıştır; dışarıdan
-kazınmış (scraped) ya da telif hakkı olan bir içerik kullanılmamıştır.
+Notebook sırası: veri → NLP görevleri → RAG → QLoRA → DPO → inference → LLMOps → XAI.
+
+## Dürüst sınırlar
+
+- Öğrenim / portföy sistemi; klinik production orkestratörü değil.
+- DPO, SFT’nin zaten öğrendiği “yapı vs. serbest” ekseninde küçük etki gösterdi; sonraki eksen “uydurma vs. reddet” olmalı.
+- vLLM istemcisi hazır; bu makinede imaj çekimi ağ hatasıyla kesildi. P95 yukarıdaki NF4 generate ölçümü.
+- Gold set 32 soru, tek ilgili belge ağırlıklı — P@5’in tavanı ~0.20.
+
+Tüm örnek belgeler bu proje için yazıldı; kazınmış veya telifli korpus yok.
+
+---
+
+<a id="english"></a>
+
+## English
+
+End-to-end Turkish LLM stack: hierarchical hybrid RAG (dense + BM25 + RRF), LangGraph agents (route / write / critique / consensus / human gate), QLoRA + DPO on Qwen2.5-3B, FastAPI, NLI groundedness.
+
+Measured on a 127-document original corpus: retrieval **P@1 1.00 / R@5 1.00** on a 32-query gold set after fusion (was 0.66 P@1 with rerank-only), Turkish classifier macro-F1 **0.972**, local NF4 **P95 6.4 s** on RTX 2080. Portfolio scale, not a production clinical system — failures are documented on purpose.
+
+Author: [Beyza Nur Kılıç](https://github.com/l4NGEL)

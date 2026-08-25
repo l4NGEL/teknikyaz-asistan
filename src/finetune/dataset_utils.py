@@ -18,16 +18,29 @@ def load_sft_examples(path=None) -> list[dict]:
 
 
 def to_chat_format(example: dict) -> dict:
-    """(instruction, input, output) -> chat mesajları. TRL'in SFTTrainer'ı bu formatı bekler."""
-    user_content = example["instruction"]
+    """(instruction, input, output[, contexts]) -> chat mesajları. TRL'in SFTTrainer'ı bu formatı bekler.
+
+    `rag_pipeline.build_prompt`'un TA KENDİSİNİ çağırıyoruz (aynı sistem promptu, aynı
+    "Bağlam:/Soru:" biçimi) ki eğitim ve çıkarım promptu asla birbirinden ayrışmasın --
+    bunun ayrışması, modelin gerçek RAG bağlamını hiç görmeden eğitilmesine (ve çıkarımda
+    bağlamı sadece kopyalamasına) yol açan asıl sorundu.
+    """
+    from src.rag.rag_pipeline import SYSTEM_PROMPT, build_prompt
+
+    question = example["instruction"]
     if example.get("input"):
-        user_content = f"{example['instruction']}\n\n{example['input']}"
-    return {
-        "messages": [
-            {"role": "user", "content": user_content},
-            {"role": "assistant", "content": example["output"]},
+        question = f"{example['instruction']}\n\n{example['input']}"
+
+    contexts = example.get("contexts") or []
+    if contexts:
+        messages = build_prompt(question, contexts)
+    else:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": question},
         ]
-    }
+    messages.append({"role": "assistant", "content": example["output"]})
+    return {"messages": messages}
 
 
 def build_hf_dataset(path=None, val_ratio: float = 0.1) -> tuple[Dataset, Dataset]:
