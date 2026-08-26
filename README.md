@@ -4,7 +4,7 @@
 
 Taslak notları, orijinal Türkçe şablon korpusuna (README, API, kurulum, mimari…) dayandırarak düzgün belgeye çevirir. Colab/Kaggle GPU ve yerel PyTorch ile uçtan uca çalışır.
 
-[English](#english) · [Çalıştırma günlüğü](docs/CALISTIRMA_GUNLUGU.md)
+[English](#english)
 
 <p>
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
@@ -27,7 +27,7 @@ Portföy ölçeği (127 orijinal belge, 146 chunk). Amaç SOTA liderboard değil
 | DistilBERT öğrenci (sınıflandırıcı) | ~**%49** daha düşük gecikme |
 | XAI | Base modelde 3 tekrarlanabilir halüsinasyon; NLI groundedness **0.20** ile yakalandı |
 
-32 soruluk gold set, web-ölçeği IR değildir. Şablon niyeti ("nasıl yazılır") başlık sinyalidir, gizli etiket sızıntısı değil. Ayrıntı: [`docs/CALISTIRMA_GUNLUGU.md`](docs/CALISTIRMA_GUNLUGU.md).
+32 soruluk gold set, web-ölçeği IR değildir. Şablon niyeti ("nasıl yazılır") başlık sinyalidir, gizli etiket sızıntısı değil.
 
 ## Mimari
 
