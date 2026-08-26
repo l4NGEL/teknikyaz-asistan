@@ -120,6 +120,33 @@ def node_refuse(state: AgentState, deps: AgentDeps) -> dict:
     }
 
 
+def node_greet(state: AgentState, deps: AgentDeps) -> dict:
+    from src.agents.router import is_thanks
+
+    thanks = is_thanks(state.get("question") or "")
+    answer = (
+        "Rica ederim. README, API, kurulum veya mimari hakkında başka bir şey sorabilirsiniz."
+        if thanks
+        else (
+            "Merhaba. Teknik dokümantasyon asistanıyım; README, API, kurulum ve mimari "
+            "şablonlarında yardımcı olurum. Ne yazmak istiyorsunuz?"
+        )
+    )
+    return {
+        "answer": answer,
+        "draft_answer": None,
+        "needs_human_review": False,
+        "review_reason": None,
+        "confidence": 1.0,
+        "confidence_bucket": "yüksek",
+        "contexts": [],
+        "sources": [],
+        "conflicts": [],
+        "groundedness": 1.0,
+        "agent_trace": _trace(state, "thanks" if thanks else "greet"),
+    }
+
+
 def node_clarify(state: AgentState, deps: AgentDeps) -> dict:
     return {
         "answer": "Soruyu biraz açabilir misiniz? Hangi belge türünü (README, API, kurulum, mimari) kastediyorsunuz?",
@@ -212,6 +239,9 @@ def run_sequential(state: AgentState, deps: AgentDeps) -> AgentState:
     if decision == "refuse":
         merged.update(node_refuse(merged, deps))
         return merged
+    if decision == "greet":
+        merged.update(node_greet(merged, deps))
+        return merged
     if decision == "clarify":
         merged.update(node_clarify(merged, deps))
         return merged
@@ -235,6 +265,7 @@ def build_langgraph(deps: AgentDeps):
     graph = StateGraph(AgentState)
     graph.add_node("router", _bind(node_router, deps))
     graph.add_node("refuse", _bind(node_refuse, deps))
+    graph.add_node("greet", _bind(node_greet, deps))
     graph.add_node("clarify", _bind(node_clarify, deps))
     graph.add_node("retrieve", _bind(node_retrieve, deps))
     graph.add_node("writer", _bind(node_writer, deps))
@@ -244,13 +275,14 @@ def build_langgraph(deps: AgentDeps):
     graph.add_conditional_edges(
         "router",
         lambda s: s.get("route") or "retrieve",
-        {"retrieve": "retrieve", "refuse": "refuse", "clarify": "clarify"},
+        {"retrieve": "retrieve", "refuse": "refuse", "clarify": "clarify", "greet": "greet"},
     )
     graph.add_edge("retrieve", "writer")
     graph.add_edge("writer", "critic")
     graph.add_edge("critic", "consensus")
     graph.add_edge("consensus", END)
     graph.add_edge("refuse", END)
+    graph.add_edge("greet", END)
     graph.add_edge("clarify", END)
     return graph.compile()
 

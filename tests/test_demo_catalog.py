@@ -9,7 +9,17 @@ def test_demo_readme_is_high_confidence_retrieve():
     assert "router:retrieve" in payload["agent_trace"]
 
 
-def test_demo_off_domain_refuses():
+def test_demo_greeting_is_welcome_not_refuse():
+    payload = lookup_demo("selam")
+    assert "router:greet" in payload["agent_trace"]
+    assert "Merhaba" in payload["answer"]
+    assert payload["sources"] == []
+
+
+def test_demo_thanks_is_acknowledged():
+    payload = lookup_demo("teşekkürler")
+    assert "thanks" in payload["agent_trace"]
+    assert "Rica ederim" in payload["answer"]
     payload = lookup_demo("hava durumu yarın nasıl")
     assert "router:refuse" in payload["agent_trace"]
     assert payload["sources"] == []

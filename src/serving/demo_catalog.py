@@ -1,13 +1,14 @@
 """GPU / indeks yokken mülakat demosu için sabit turlar.
 
-Aynı router kurallarını kullanır (refuse / clarify / retrieve). Retrieve turları
+Aynı router kurallarını kullanır (greet / refuse / clarify / retrieve). Retrieve turları
 korpustaki gerçek şablon başlıklarına yaslanır; uydurma belge yok.
 """
 from __future__ import annotations
 
-from src.agents.router import route
+from src.agents.router import is_thanks, route
 
 DEMO_EXAMPLES = (
+    "selam",
     "Bir README'de hangi bölümler olmalı?",
     "API dokümantasyonu nasıl yapılandırılır?",
     "Drone sürü zekası belgesi nasıl yazılır?",
@@ -83,6 +84,25 @@ HITL = _turn(
     agent_trace=["router:retrieve", "retrieve:0", "writer:empty", "critic:g=0.00,conflicts=0", "consensus:human"],
 )
 
+GREET = _turn(
+    answer=(
+        "Merhaba. Teknik dokümantasyon asistanıyım; README, API, kurulum ve mimari "
+        "şablonlarında yardımcı olurum. Ne yazmak istiyorsunuz?"
+    ),
+    sources=[],
+    confidence=1.0,
+    confidence_bucket="yüksek",
+    agent_trace=["router:greet", "greet"],
+)
+
+THANKS = _turn(
+    answer="Rica ederim. README, API, kurulum veya mimari hakkında başka bir şey sorabilirsiniz.",
+    sources=[],
+    confidence=1.0,
+    confidence_bucket="yüksek",
+    agent_trace=["router:greet", "thanks"],
+)
+
 REFUSE = _turn(
     answer=(
         "Bu soru teknik dokümantasyon kapsamının dışında. README, API, kurulum "
@@ -110,6 +130,8 @@ _RETRIEVE_CASES = (
 
 def lookup_demo(question: str) -> dict:
     decision = route(question)
+    if decision == "greet":
+        return dict(THANKS if is_thanks(question) else GREET)
     if decision == "refuse":
         return dict(REFUSE)
     if decision == "clarify":

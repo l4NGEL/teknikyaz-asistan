@@ -4,9 +4,11 @@ from src.agents.graph import AgentDeps, build_langgraph, run_agents, run_sequent
 from src.agents.router import route
 
 
-def test_router_refuses_off_domain_and_greetings():
+def test_router_greets_basics_and_refuses_off_domain():
+    assert route("selam") == "greet"
+    assert route("merhaba") == "greet"
+    assert route("teşekkürler") == "greet"
     assert route("hava durumu yarın nasıl") == "refuse"
-    assert route("merhaba") == "refuse"
     assert route("ok") == "clarify"
     assert route("Bir README'de hangi bölümler olmalı?") == "retrieve"
 
@@ -54,7 +56,11 @@ def _deps(**overrides):
     return AgentDeps(**kwargs)
 
 
-def test_sequential_graph_returns_grounded_answer_without_human_gate():
+def test_sequential_greeting_does_not_retrieve():
+    result = run_sequential({"question": "selam", "agent_trace": []}, _deps())
+    assert result["route"] == "greet"
+    assert "Merhaba" in result["answer"]
+    assert result["contexts"] == []
     result = run_sequential({"question": "Bir README'de hangi bölümler olmalı?", "agent_trace": []}, _deps())
     assert result["route"] == "retrieve"
     assert result["needs_human_review"] is False
