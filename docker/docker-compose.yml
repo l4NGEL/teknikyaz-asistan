@@ -25,6 +25,19 @@ services:
     depends_on:
       - api
 
+  chat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["streamlit", "run", "src/serving/chat_app.py", "--server.address=0.0.0.0", "--server.port=8502"]
+    ports:
+      - "8502:8502"
+    volumes:
+      - ../data:/app/data
+      - ../models:/app/models
+    environment:
+      - PYTHONUNBUFFERED=1
+
   # GPU gerekir. `docker compose --profile gpu up vllm`
   # OpenAI uyumlu API: http://localhost:8001/v1
   vllm:
