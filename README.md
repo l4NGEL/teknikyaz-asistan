@@ -11,7 +11,7 @@ Taslak notları, orijinal Türkçe şablon korpusuna (README, API, kurulum, mima
   <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-transformers%20%2B%20PEFT%20%2B%20TRL-EE4C2C?logo=pytorch&logoColor=white">
   <img alt="RAG" src="https://img.shields.io/badge/RAG-hybrid%20dense%20%2B%20BM25%20%2B%20RRF-0EA5E9">
   <img alt="LangGraph" src="https://img.shields.io/badge/Agents-LangGraph-111827">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-54%20passed-22C55E">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-58%20passed-22C55E">
 </p>
 
 ## Ölçülen sonuçlar
@@ -62,7 +62,7 @@ src/finetune/        QLoRA
 src/alignment/       DPO
 src/xai/             groundedness, güven, HITL eşiği
 src/optimize/        quantize / prune / distill + vLLM istemcisi
-src/serving/         FastAPI
+src/serving/         FastAPI + Streamlit sohbet (demo / canlı)
 src/nlp_tasks/       sınıflandırma, NER, özet, QA, çeviri, diyalog
 notebooks/           Colab 00–08
 data/eval/           retrieval gold (Precision@k / Recall@k)
@@ -81,6 +81,14 @@ python -m venv .venv
 pip install -r requirements.txt
 pytest tests/ -q
 ```
+
+**Arayüz (önerilen demo, GPU yok):**
+
+```bash
+streamlit run src/serving/chat_app.py
+```
+
+Kenardan **Demo (GPU yok)** seçili kalsın. Örnek sorular README / API / HITL / kapsam dışı turlarını gösterir. **Canlı** mod Chroma indeksi ve yerel LLM ister.
 
 Retrieval skor kartı (Chroma indeksi gerekir):
 
@@ -112,7 +120,7 @@ Tüm örnek belgeler bu proje için yazıldı; kazınmış veya telifli korpus y
 
 ## English
 
-End-to-end Turkish LLM stack: hierarchical hybrid RAG (dense + BM25 + RRF), LangGraph agents (route / write / critique / consensus / human gate), QLoRA + DPO on Qwen2.5-3B, FastAPI, NLI groundedness.
+End-to-end Turkish LLM stack: hierarchical hybrid RAG (dense + BM25 + RRF), LangGraph agents (route / write / critique / consensus / human gate), QLoRA + DPO on Qwen2.5-3B, FastAPI, Streamlit chat (GPU-free demo mode), NLI groundedness.
 
 Measured on a 127-document original corpus: retrieval **P@1 1.00 / R@5 1.00** on a 32-query gold set after fusion (was 0.66 P@1 with rerank-only), Turkish classifier macro-F1 **0.972**, local NF4 **P95 6.4 s** on RTX 2080. Portfolio scale, not a production clinical system — failures are documented on purpose.
 
