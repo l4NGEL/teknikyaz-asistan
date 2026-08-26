@@ -1,0 +1,16 @@
+# GitHub Actions: birim test + ruff. QLoRA/DPO yığını requirements.txt'te.
+pytest>=8.2
+ruff>=0.5
+pydantic>=2.7
+fastapi>=0.111
+langchain-core>=0.3
+langgraph>=0.2
+scipy
+numpy
+rank-bm25
+chromadb>=0.5
+sentence-transformers>=3.0
+transformers>=4.42
+huggingface-hub<1.0
+peft>=0.11
+accelerate>=0.31
