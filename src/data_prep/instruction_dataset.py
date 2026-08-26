@@ -12,7 +12,7 @@ iyi yazılmış Türkçe teknik dokümana dönüştür" davranışını öğrete
 her zaman "Bağlam: [baska bir dokuman] ... Soru: ..." formatında, retrieval'ın getirdiği
 YAPISAL/STİL olarak benzer ama İÇERİK olarak alakasız bir referans dokümanla karşılaşıyor.
 Model bunu hiç eğitimde görmediği için, çıkarımda notları kullanmak yerine bağlamı olduğu
-gibi kopyalıyordu (gerçek, gözlemlenmiş bir hata -- bkz. docs/CALISTIRMA_GUNLUGU.md).
+gibi kopyalıyordu (gerçek, gözlemlenmiş bir hata).
 Düzeltme: her örneğe, AYNI kategoriden ama FARKLI bir dokümanı "bağlam" olarak ekliyoruz;
 model artık "bağlamdaki stili taklit et, ama içeriği notlardan al" ayrımını görüyor.
 
