@@ -14,3 +14,10 @@ transformers>=4.42
 huggingface-hub<1.0
 peft>=0.11
 accelerate>=0.31
+
+# CV ↔ ilan eşleştirme aracı (src/matching)
+python-multipart>=0.0.9
+pdfplumber>=0.11
+python-docx>=1.1
+beautifulsoup4>=4.12
+lxml>=5.0
