@@ -1,0 +1,8 @@
+{
+  "_comment": "Demo kimlikleri. Üretimde bu eşleme IdP'den (OIDC/LDAP grup claim'leri) gelir; burada sabit dosya.",
+  "anonymous": {"clearance": "public", "groups": []},
+  "musteri": {"clearance": "public", "groups": []},
+  "gelistirici": {"clearance": "internal", "groups": ["engineering"]},
+  "guvenlik": {"clearance": "restricted", "groups": ["engineering", "security"]},
+  "admin": {"clearance": "restricted", "groups": ["admin", "engineering", "security"]}
+}

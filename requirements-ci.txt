@@ -2,6 +2,7 @@
 pytest>=8.2
 ruff>=0.5
 pydantic>=2.7
+mcp>=2.3,<3                    # MCP sunucusu (src/serving/mcp_server.py)
 fastapi>=0.111
 langchain-core>=0.3
 langgraph>=0.2

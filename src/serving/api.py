@@ -3,14 +3,22 @@
 Her istek `metrics_store`'a yazılır (gecikme, halüsinasyon skoru) — bu, LLMOps dashboard'unun
 (src/llmops/dashboard.py) beslendiği kaynaktır. Sohbet uç noktası ek olarak XAI
 halüsinasyon kontrolünden (src/xai/hallucination_check.py) geçer.
+
+Yetki: `X-User` başlığı bu demoda kimliği temsil eder; üretimde bu değer istemciden
+değil, doğrulanmış bir JWT/OIDC token'ından (API gateway) gelir. Bilinmeyen kimlik
+`public` yetkiye düşer. Retrieval yapan her istek hash zincirli denetim kaydına yazılır.
 """
 from __future__ import annotations
 
 import time
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 
+from src.governance.acl import principal_scope, resolve_principal
+from src.governance.audit import log_access
+from src.governance.pii import mask
 from src.llmops.metrics_store import log_request
+from src.llmops.tracing import span
 from src.serving.schemas import (
     ChatRequest,
     ChatResponse,
@@ -18,6 +26,9 @@ from src.serving.schemas import (
     ClassifyResponse,
     NerRequest,
     NerResponse,
+    SearchHit,
+    SearchRequest,
+    SearchResponse,
     SummarizeRequest,
     SummarizeResponse,
     TranslateRequest,
@@ -34,17 +45,46 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/search", response_model=SearchResponse)
+def search(req: SearchRequest, x_user: str | None = Header(default=None)):
+    """Yetki farkındalıklı arama: yalnızca çağıranın okuyabildiği belgeler döner."""
+    from src.rag.retriever import retrieve_with_report
+
+    principal = resolve_principal(x_user)
+    start = time.perf_counter()
+    with span("http.search", user=principal.user_id):
+        hits, denied = retrieve_with_report(req.query, final_k=req.top_k, principal=principal, hierarchical=False)
+    log_access(principal.user_id, "search", req.query, [h["chunk_id"] for h in hits], denied)
+    log_request(endpoint="/search", latency_ms=(time.perf_counter() - start) * 1000, input_preview=req.query)
+    return SearchResponse(
+        user=principal.user_id,
+        hits=[
+            SearchHit(
+                chunk_id=h["chunk_id"],
+                doc_title=h.get("doc_title") or "",
+                snippet=mask((h.get("text") or "")[:240]),
+                score=float(h.get("fusion_score", 0.0)),
+            )
+            for h in hits
+        ],
+        denied_candidates=denied,
+    )
+
+
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, x_user: str | None = Header(default=None)):
     from src.nlp_tasks.dialogue import chat as run_chat
     from src.xai.hallucination_check import groundedness_score
 
+    principal = resolve_principal(x_user)
     start = time.perf_counter()
     try:
-        result = run_chat(req.session_id, req.message)
+        with principal_scope(principal), span("http.chat", user=principal.user_id):
+            result = run_chat(req.session_id, req.message)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
     latency_ms = (time.perf_counter() - start) * 1000
+    log_access(principal.user_id, "chat", req.message, [s.get("title", "") for s in result.get("sources", [])])
 
     hallucination_score = None
     try:

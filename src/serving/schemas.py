@@ -70,3 +70,21 @@ class TranslateRequest(BaseModel):
 
 class TranslateResponse(BaseModel):
     translated_text: str
+
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=2000)
+    top_k: int = Field(5, ge=1, le=20)
+
+
+class SearchHit(BaseModel):
+    chunk_id: str
+    doc_title: str
+    snippet: str
+    score: float
+
+
+class SearchResponse(BaseModel):
+    user: str
+    hits: list[SearchHit]
+    denied_candidates: int
