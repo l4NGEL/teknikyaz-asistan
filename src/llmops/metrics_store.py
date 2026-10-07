@@ -12,6 +12,7 @@ import time
 from contextlib import contextmanager
 
 from src.config import METRICS_DB_PATH
+from src.governance.pii import mask
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS requests (
@@ -52,7 +53,8 @@ def log_request(
             "hallucination_score, input_preview, output_preview) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 time.time(), endpoint, model_version, latency_ms, hallucination_score,
-                input_preview[:200], output_preview[:200],
+                # Maskeleme kesmeden ÖNCE: 200. karakterde bölünen bir IBAN/TCKN desene uymaz.
+                mask(input_preview)[:200], mask(output_preview)[:200],
             ),
         )
 

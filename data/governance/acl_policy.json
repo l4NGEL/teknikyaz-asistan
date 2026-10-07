@@ -1,0 +1,12 @@
+{
+  "_comment": "Kurallar sırayla denenir, ilk eşleşen kazanır. Hiçbiri eşleşmezse default uygulanır (deny-by-default: restricted + admin).",
+  "levels": ["public", "internal", "restricted"],
+  "default": {"classification": "restricted", "groups": ["admin"]},
+  "rules": [
+    {"title_regex": "^Mimari Doküman — (Kimlik Doğrulama|Çok Kiracılı)", "classification": "restricted", "groups": ["security"]},
+    {"title_regex": "^(Güvenlik Politikası|Felaket Kurtarma Planı|Olay Sonrası Rapor|Saha Operasyonu Güvenlik Talimatı|Veri Sınıflandırma Politikası|Veri Saklama Politikası)", "classification": "restricted", "groups": ["security"]},
+    {"title_regex": "^(Mimari Doküman|API Referansı|Nöbetçi \\(On-Call\\)|Değişiklik Yönetimi|Üçüncü Taraf Bağımlılık|Performans Test Planı|Test Planı|Kod )", "classification": "internal", "groups": ["engineering"]},
+    {"title_regex": "^Kurulum Kılavuzu — ", "classification": "internal", "groups": ["engineering"]},
+    {"title_regex": "^(README|Kullanıcı Kılavuzu|SSS|Sürüm Notları|Kurulum Kılavuzu Şablonu|Sorun Giderme|Terimler Sözlüğü|Yeni Başlayan|Katkı Sağlama|Erişilebilirlik|API Dokümantasyonu Şablonu|API Sürümleme|Hız Sınırlama|Kullanımdan Kaldırma|Görev Sonrası)", "classification": "public", "groups": []}
+  ]
+}
