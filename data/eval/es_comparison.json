@@ -1,0 +1,113 @@
+{
+  "n_queries": 32,
+  "results": {
+    "bm25_rank_bm25": {
+      "hit@1": 0.8125,
+      "hit@3": 0.875,
+      "recall@5": 0.90625,
+      "mrr@10": 0.8463541666666667,
+      "p50_ms": 0.4403999773785472,
+      "misses_at_1": [
+        "OpenAPI ile endpoint nasıl belgelenir?",
+        "Kurulum kılavuzu şablonunda hangi adımlar bulunur?",
+        "Kullanıcı kılavuzu nasıl yazılır?",
+        "SSS belgesi hangi soruları kapsamalı?",
+        "Mimari doküman şablonunda hangi bölümler olmalı?",
+        "Güvenlik politikası şablonunda hangi kontroller var?"
+      ]
+    },
+    "bm25_es_standard": {
+      "hit@1": 0.75,
+      "hit@3": 0.78125,
+      "recall@5": 0.8125,
+      "mrr@10": 0.7813740079365079,
+      "p50_ms": 55.32159999711439,
+      "misses_at_1": [
+        "Bir README'de hangi bölümler olmalı?",
+        "README şablonunda kurulum ve lisans nasıl yazılır?",
+        "OpenAPI ile endpoint nasıl belgelenir?",
+        "Kurulum kılavuzu şablonunda hangi adımlar bulunur?",
+        "Kullanıcı kılavuzu nasıl yazılır?",
+        "SSS belgesi hangi soruları kapsamalı?",
+        "Mimari doküman şablonunda hangi bölümler olmalı?",
+        "Güvenlik politikası şablonunda hangi kontroller var?"
+      ]
+    },
+    "bm25_es_turkish": {
+      "hit@1": 0.84375,
+      "hit@3": 0.875,
+      "recall@5": 0.875,
+      "mrr@10": 0.8541666666666667,
+      "p50_ms": 55.280049971770495,
+      "misses_at_1": [
+        "Bir README'de hangi bölümler olmalı?",
+        "OpenAPI ile endpoint nasıl belgelenir?",
+        "Kurulum kılavuzu şablonunda hangi adımlar bulunur?",
+        "Kullanıcı kılavuzu nasıl yazılır?",
+        "Mimari doküman şablonunda hangi bölümler olmalı?"
+      ]
+    },
+    "bm25_es_f5": {
+      "hit@1": 0.78125,
+      "hit@3": 0.84375,
+      "recall@5": 0.90625,
+      "mrr@10": 0.8312872023809523,
+      "p50_ms": 53.311149997171015,
+      "misses_at_1": [
+        "Bir README'de hangi bölümler olmalı?",
+        "API dokümantasyonu nasıl yapılandırılır?",
+        "OpenAPI ile endpoint nasıl belgelenir?",
+        "Kurulum kılavuzu şablonunda hangi adımlar bulunur?",
+        "Kullanıcı kılavuzu nasıl yazılır?",
+        "SSS belgesi hangi soruları kapsamalı?",
+        "Mimari doküman şablonunda hangi bölümler olmalı?"
+      ]
+    },
+    "dense_chroma": {
+      "hit@1": 0.90625,
+      "hit@3": 0.96875,
+      "recall@5": 1.0,
+      "mrr@10": 0.94375,
+      "p50_ms": 37.80085005564615,
+      "misses_at_1": [
+        "Bir README'de hangi bölümler olmalı?",
+        "API dokümantasyonu nasıl yapılandırılır?",
+        "Kullanıcı kılavuzu nasıl yazılır?"
+      ]
+    },
+    "dense_es_knn": {
+      "hit@1": 0.90625,
+      "hit@3": 0.96875,
+      "recall@5": 0.96875,
+      "mrr@10": 0.9375,
+      "p50_ms": 95.31494998373091,
+      "misses_at_1": [
+        "Bir README'de hangi bölümler olmalı?",
+        "API dokümantasyonu nasıl yapılandırılır?",
+        "Kullanıcı kılavuzu nasıl yazılır?"
+      ]
+    },
+    "hybrid_local": {
+      "hit@1": 1.0,
+      "hit@3": 1.0,
+      "recall@5": 1.0,
+      "mrr@10": 1.0,
+      "p50_ms": 171.4482499519363,
+      "misses_at_1": []
+    },
+    "hybrid_es": {
+      "hit@1": 0.96875,
+      "hit@3": 0.96875,
+      "recall@5": 1.0,
+      "mrr@10": 0.9765625,
+      "p50_ms": 286.27694997703657,
+      "misses_at_1": [
+        "OpenAPI ile endpoint nasıl belgelenir?"
+      ]
+    }
+  },
+  "es_server_took_p50_ms": {
+    "bm25_f5": 10.0,
+    "knn": 11.0
+  }
+}

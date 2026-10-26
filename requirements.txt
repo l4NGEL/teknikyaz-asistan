@@ -17,6 +17,7 @@ evaluate
 # RAG
 chromadb>=0.5
 rank-bm25
+elasticsearch>=8.15,<9          # Elasticsearch arka ucu (src/rag/es_index.py)
 
 # LangChain uyumluluk katmanı (yalnızca -core: Runnable/Document soyutlamaları için yeterli)
 langchain-core>=0.3

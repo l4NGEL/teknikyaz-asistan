@@ -7,8 +7,14 @@ Fusion ile koruyup rerank + başlık örtüşmesini üzerine ekliyoruz.
 
 `principal` verilirse yetkisiz adaylar füzyondan ve reranker'dan ÖNCE düşer
 (bkz. src/governance/acl.py); aday havuzu süzme kaybını telafi için genişletilir.
+
+`backend="elasticsearch"` (veya RETRIEVAL_BACKEND ortam değişkeni) dense ve BM25
+adaylarını Chroma + rank_bm25 yerine tek bir Elasticsearch indeksinden alır; füzyon,
+ACL ve rerank adımları aynı kalır (bkz. src/rag/es_index.py).
 """
 from __future__ import annotations
+
+import os
 
 from sentence_transformers import CrossEncoder
 
@@ -42,18 +48,28 @@ def retrieve_with_report(
     hierarchical: bool | None = None,
     principal: Principal | None = None,
     policy: AccessPolicy | None = None,
+    backend: str | None = None,
 ) -> tuple[list[dict], int]:
     """(hits, yetki nedeniyle elenen aday sayısı)."""
     principal = principal or active_principal()
+    backend = backend or os.environ.get("RETRIEVAL_BACKEND", "local")
     denied = 0
-    with span("retrieve", question=question, final_k=final_k) as root:
+    with span("retrieve", question=question, final_k=final_k, backend=backend) as root:
         # ACL süzmesi aday sayısını düşürür; havuz genişletilmezse kısıtlı kullanıcıda
         # izinli ama 20. sıranın altındaki belge hiç aday olamaz.
         pool_k = candidate_k * 3 if principal is not None else candidate_k
-        with span("dense"):
-            dense_hits = vector_store.query(question, top_k=pool_k)
-        with span("bm25"):
-            bm25_hits = bm25_index.query(question, top_k=pool_k)
+        if backend == "elasticsearch":
+            from src.rag import es_index
+
+            with span("dense", engine="es_knn"):
+                dense_hits = es_index.query_dense(question, top_k=pool_k)
+            with span("bm25", engine="es_turkish"):
+                bm25_hits = es_index.query_bm25(question, top_k=pool_k)
+        else:
+            with span("dense"):
+                dense_hits = vector_store.query(question, top_k=pool_k)
+            with span("bm25"):
+                bm25_hits = bm25_index.query(question, top_k=pool_k)
 
         if principal is not None:
             with span("acl_filter", user=principal.user_id, clearance=principal.clearance) as acl_span:
