@@ -12,8 +12,6 @@ from dataclasses import dataclass
 
 from scipy import stats  # scikit-learn bağımlılığıyla birlikte gelir
 
-from src.llmops.experiment_tracker import log_metrics, run
-
 
 @dataclass
 class ABTestResult:
@@ -64,6 +62,10 @@ def run_ab_test(
     scores_b = [score_fn(ex, eval_fn_b(ex)) for ex in eval_examples]
 
     result = paired_ttest(scores_a, scores_b, variant_a_name, variant_b_name)
+
+    # mlflow ağır bir bağımlılık; yalnızca deney kaydı gerektiğinde yüklenir,
+    # böylece paired_ttest mlflow kurulu olmadan da kullanılabilir.
+    from src.llmops.experiment_tracker import log_metrics, run
 
     with run(f"ab-test-{variant_a_name}-vs-{variant_b_name}"):
         log_metrics({
